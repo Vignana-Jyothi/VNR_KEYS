@@ -135,8 +135,8 @@ export const getMyTakenKeys = asyncHandler(async (req, res) => {
  */
 export const getAllTakenKeys = asyncHandler(async (req, res) => {
   // Verify user has permission to view all taken keys
-  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty') {
-    throw new ValidationError("Only Security, Faculty, or Admin users can view all taken keys");
+  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty' && req.userRole !== 'student') {
+    throw new ValidationError("Only Security, Faculty, Student, or Admin users can view all taken keys");
   }
 
   const keys = await Key.findUnavailable()
@@ -296,13 +296,13 @@ export const takeKey = asyncHandler(async (req, res) => {
     await createKeyTakenNotification(key, user);
     await notifySecurityUsers(
       'Key Taken',
-      `Faculty ${user.name} has taken key ${key.keyName} (${key.keyNumber}) from ${key.location}`,
+      `${user.role === 'student' ? 'Student' : 'Faculty'} ${user.name} has taken key ${key.keyName} (${key.keyNumber}) from ${key.location}`,
       'key_taken', 'low',
       { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: user._id, facultyName: user.name }
     );
     await notifyAdminUsers(
       'Key Taken',
-      `${user.name} (Faculty) has taken key ${key.keyName} (${key.keyNumber}) — ${key.department}, ${key.location}`,
+      `${user.name} (${user.role === 'student' ? 'Student' : 'Faculty'}) has taken key ${key.keyName} (${key.keyNumber}) — ${key.department}, ${key.location}`,
       'key_taken', 'low',
       { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: user._id, facultyName: user.name }
     );
@@ -384,13 +384,13 @@ export const returnKey = asyncHandler(async (req, res) => {
       // Notify security and admin about the return
       await notifySecurityUsers(
         'Key Returned',
-        `Faculty ${originalUser.name} has returned key ${key.keyName} (${key.keyNumber})`,
+        `${originalUser.role === 'student' ? 'Student' : 'Faculty'} ${originalUser.name} has returned key ${key.keyName} (${key.keyNumber})`,
         'key_returned', 'low',
         { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
       );
       await notifyAdminUsers(
         'Key Returned',
-        `${originalUser.name} returned key ${key.keyName} (${key.keyNumber}) — ${key.department}`,
+        `${originalUser.name} (${originalUser.role === 'student' ? 'Student' : 'Faculty'}) returned key ${key.keyName} (${key.keyNumber}) — ${originalUser.department}`,
         'key_returned', 'low',
         { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
       );
@@ -473,9 +473,9 @@ export const collectiveReturnKey = asyncHandler(async (req, res) => {
   const { keyId } = req.params;
   const { reason } = req.body;
 
-  // Verify user has permission for collective returns (Security or Faculty)
-  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty') {
-    throw new ValidationError("Only Security, Faculty, or Admin users can perform Volunteer Key Returns");
+  // Verify user has permission for collective returns (Security or Faculty/Student)
+  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty' && req.userRole !== 'student') {
+    throw new ValidationError("Only Security, Faculty, Student, or Admin users can perform Volunteer Key Returns");
   }
 
   const key = await Key.findById(keyId);
@@ -966,13 +966,13 @@ export const qrScanReturn = asyncHandler(async (req, res) => {
       // Notify security and admin about the return
       await notifySecurityUsers(
         'Key Returned',
-        `Faculty ${originalUser.name} has returned key ${key.keyName} (${key.keyNumber})`,
+        `${originalUser.role === 'student' ? 'Student' : 'Faculty'} ${originalUser.name} has returned key ${key.keyName} (${key.keyNumber})`,
         'key_returned', 'low',
         { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
       );
       await notifyAdminUsers(
         'Key Returned',
-        `${originalUser.name} returned key ${key.keyName} (${key.keyNumber}) — ${key.department}`,
+        `${originalUser.name} (${originalUser.role === 'student' ? 'Student' : 'Faculty'}) returned key ${key.keyName} (${key.keyNumber}) — ${originalUser.department}`,
         'key_returned', 'low',
         { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
       );
@@ -1089,13 +1089,13 @@ export const qrScanRequest = asyncHandler(async (req, res) => {
     console.log('✅ Key taken notification created for user:', requestingUser.name);
     await notifySecurityUsers(
       'Key Taken',
-      `Faculty ${requestingUser.name} has taken key ${key.keyName} (${key.keyNumber}) from ${key.location}`,
+      `${requestingUser.role === 'student' ? 'Student' : 'Faculty'} ${requestingUser.name} has taken key ${key.keyName} (${key.keyNumber}) from ${key.location}`,
       'key_taken', 'low',
       { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: requestingUser._id, facultyName: requestingUser.name }
     );
     await notifyAdminUsers(
       'Key Taken',
-      `${requestingUser.name} (Faculty) has taken key ${key.keyName} (${key.keyNumber}) — ${key.department}, ${key.location}`,
+      `${requestingUser.name} (${requestingUser.role === 'student' ? 'Student' : 'Faculty'}) has taken key ${key.keyName} (${key.keyNumber}) — ${requestingUser.department}, ${key.location}`,
       'key_taken', 'low',
       { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: requestingUser._id, facultyName: requestingUser.name }
     );

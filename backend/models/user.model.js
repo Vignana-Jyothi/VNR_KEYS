@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["faculty", "security", "admin", "pending"],
+      enum: ["faculty", "student", "security", "admin", "pending"],
       default: "pending", // Default for new users who need to complete registration
     },
     department: {
@@ -51,18 +51,18 @@ const userSchema = new mongoose.Schema(
         "VJ_Hub"
       ],
       required: function() {
-        // Department is required only for faculty
-        return this.role === "faculty";
+        // Department is required only for faculty or student
+        return this.role === "faculty" || this.role === "student";
       },
     },
     facultyId: {
       type: String,
       required: function() {
-        // Faculty ID is required only for faculty
-        return this.role === "faculty";
+        // Faculty ID is required only for faculty or student
+        return this.role === "faculty" || this.role === "student";
       },
       unique: true,
-      sparse: true, // Allows multiple null values for non-faculty users
+      sparse: true, // Allows multiple null values for non-faculty/non-student users
     },
     // OAuth fields (required since we only use Google OAuth)
     googleId: {

@@ -124,7 +124,7 @@ const AdminDashboard = () => {
     totalKeys: 0,
     activeKeys: 0,
     inactiveKeys: 0,
-    usersByRole: { admin: 0, security: 0, faculty: 0 },
+    usersByRole: { admin: 0, security: 0, faculty: 0, student: 0 },
   };
 
   // Calculate real-time key statistics
@@ -165,8 +165,9 @@ const AdminDashboard = () => {
   ];
 
   const roleDistribution = [
-    { role: "Security", count: adminStats.usersByRole.operator || 0, color: "bg-blue-500" },
-    { role: "Faculty", count: adminStats.usersByRole.responder || 0, color: "bg-green-500" },
+    { role: "Security", count: adminStats.usersByRole.security || 0, color: "bg-blue-500" },
+    { role: "Faculty", count: adminStats.usersByRole.faculty || 0, color: "bg-green-500" },
+    { role: "Students", count: adminStats.usersByRole.student || 0, color: "bg-indigo-500" },
     { role: "Admins", count: adminStats.usersByRole.admin || 0, color: "bg-purple-500" },
   ];
 
@@ -458,7 +459,7 @@ const AdminDashboard = () => {
           </h3>
           <div className="space-y-3">
             {dashboardData?.recentUsers?.slice(0, 5).map((recentUser) => (
-              <div key={recentUser.id} className="flex items-center justify-between py-2">
+              <div key={recentUser._id || recentUser.id} className="flex items-center justify-between py-2">
                 <div className="flex items-center">
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
                     <span className="text-white text-sm font-semibold">

@@ -122,7 +122,9 @@ export const sendEmailNotification = async (notification) => {
       notification.recipient.email,
       notification.recipient.name,
       notification.title,
-      notification.message
+      notification.message,
+      notification.type,
+      notification.metadata
     );
 
     console.log(`📧 Email notification sent to ${notification.recipient.email}`);
@@ -166,7 +168,7 @@ export const createKeyTakenNotification = async (key, faculty) => {
     console.log('🔵 Notification data prepared:', JSON.stringify(notificationData, null, 2));
 
     const notification = await createAndSendNotification(notificationData, {
-      email: false,
+      email: true,
       realTime: true
     });
     console.log('✅ Key taken notification created and sent successfully');
@@ -224,7 +226,7 @@ export const createKeyReturnedNotification = async (key, originalUser, returnedB
     console.log('🔵 Sending notification with data:', JSON.stringify(notificationData, null, 2));
 
     const notification = await createAndSendNotification(notificationData, {
-      email: false,
+      email: true,
       realTime: true
     });
 
@@ -271,7 +273,7 @@ export const createKeySelfReturnedNotification = async (key, faculty) => {
     console.log('🔵 Preparing to create notification with data:', JSON.stringify(notificationData, null, 2));
 
     const notification = await createAndSendNotification(notificationData, {
-      email: false,
+      email: true,
       realTime: true
     });
 
@@ -392,7 +394,7 @@ export const createBatchReturnNotifications = async (keys, returnedBy, keyOrigin
 
       try {
         const notification = await createAndSendNotification(originalUserNotification, {
-          email: false,
+          email: true,
           realTime: true
         });
         notifications.push(notification);
@@ -424,7 +426,7 @@ export const createBatchReturnNotifications = async (keys, returnedBy, keyOrigin
 
     try {
       const returnerNotificationResult = await createAndSendNotification(returnerNotification, {
-        email: false,
+        email: true,
         realTime: true
       });
       notifications.push(returnerNotificationResult);
@@ -560,10 +562,9 @@ export const createSecurityAlertNotification = async (facultyUser, unreturnedKey
         }
       };
 
-      // Create notification but do NOT send email to security (email: false)
       try {
         const notification = await createAndSendNotification(notificationData, {
-          email: false,
+          email: true,
           realTime: true
         });
         notifications.push(notification);

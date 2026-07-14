@@ -51,6 +51,8 @@ export const useAuthStore = create((set, get) => ({
 				return '/dashboard/admin';
 			case 'faculty':
 				return '/dashboard/faculty';
+			case 'student':
+				return '/dashboard/student';
 			case 'security':
 				return '/dashboard/security';
 			default:
@@ -211,6 +213,25 @@ export const useAuthStore = create((set, get) => ({
 			});
 
 			handleSuccess(response.data.message || "Profile updated successfully!");
+			return response.data;
+		} catch (error) {
+			const errorMessage = handleError(error);
+			set({ error: errorMessage, isLoading: false });
+			throw error;
+		}
+	},
+
+	// Fetch dashboard data based on role
+	fetchDashboardData: async () => {
+		const { user } = get();
+		if (!user || !user.role) {
+			throw new Error("User not authenticated or role missing");
+		}
+
+		set({ isLoading: true, error: null });
+		try {
+			const response = await axios.get(`${config.api.dashboardUrl}/${user.role}`);
+			set({ isLoading: false });
 			return response.data;
 		} catch (error) {
 			const errorMessage = handleError(error);

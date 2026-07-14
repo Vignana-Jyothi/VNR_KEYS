@@ -210,11 +210,24 @@ function App() {
 						<Route path="taken" element={<MyKeysPage />} />
 						<Route path="keylist" element={<AllKeysPage />} />
 					</Route>
-					{/* Volunteer Key Return - accessible to Security and Faculty */}
+					<Route
+						path='student'
+						element={
+							<RoleProtectedRoute allowedRoles={['admin', 'student']}>
+								<FacultyDashboard />
+							</RoleProtectedRoute>
+						}
+					>
+						{/* Nested routes for Student Dashboard */}
+						<Route index element={<Navigate to="taken" replace />} />
+						<Route path="taken" element={<MyKeysPage />} />
+						<Route path="keylist" element={<AllKeysPage />} />
+					</Route>
+					{/* Volunteer Key Return - accessible to Security, Faculty, and Student */}
 					<Route
 						path='collective-return'
 						element={
-							<RoleProtectedRoute allowedRoles={['admin', 'security', 'faculty']}>
+							<RoleProtectedRoute allowedRoles={['admin', 'security', 'faculty', 'student']}>
 								<CollectiveKeyReturnPage />
 							</RoleProtectedRoute>
 						}

@@ -100,6 +100,7 @@ const ManageUsersPage = () => {
     switch (role) {
       case 'admin': return 'bg-red-500';
       case 'faculty': return 'bg-blue-500';
+      case 'student': return 'bg-indigo-500';
       case 'security': return 'bg-green-500';
       default: return 'bg-gray-500';
     }
@@ -143,6 +144,7 @@ const ManageUsersPage = () => {
                 <option value="">All Roles</option>
                 <option value="admin">Admin</option>
                 <option value="faculty">Faculty</option>
+                <option value="student">Student</option>
                 <option value="security">Security</option>
               </select>
             </div>
@@ -324,6 +326,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
             >
               <option value="faculty">Faculty</option>
+              <option value="student">Student</option>
               <option value="security">Security</option>
               <option value="admin">Admin</option>
             </select>
@@ -401,11 +404,11 @@ const AddUserModal = ({ onClose, onSave }) => {
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (formData.role === 'faculty' && !formData.department) {
-      newErrors.department = 'Department is required for faculty';
+    if ((formData.role === 'faculty' || formData.role === 'student') && !formData.department) {
+      newErrors.department = `Department is required for ${formData.role}`;
     }
-    if (formData.role === 'faculty' && !formData.facultyId.trim()) {
-      newErrors.facultyId = 'Faculty ID is required for faculty';
+    if ((formData.role === 'faculty' || formData.role === 'student') && !formData.facultyId.trim()) {
+      newErrors.facultyId = `${formData.role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} is required`;
     }
     return newErrors;
   };
@@ -470,14 +473,15 @@ const AddUserModal = ({ onClose, onSave }) => {
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
             >
               <option value="faculty">Faculty</option>
+              <option value="student">Student</option>
               <option value="security">Security</option>
               <option value="admin">Admin</option>
             </select>
           </div>
 
-          {formData.role === 'faculty' && (
+          {(formData.role === 'faculty' || formData.role === 'student') && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Department {formData.role === 'faculty' ? '*' : ''}</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Department *</label>
               <select
                 value={formData.department}
                 onChange={(e) => {
@@ -497,9 +501,11 @@ const AddUserModal = ({ onClose, onSave }) => {
             </div>
           )}
 
-          {formData.role === 'faculty' && (
+          {(formData.role === 'faculty' || formData.role === 'student') && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Faculty ID *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                {formData.role === 'student' ? 'Student ID / Roll Number *' : 'Faculty ID *'}
+              </label>
               <input
                 type="text"
                 value={formData.facultyId}
@@ -508,7 +514,7 @@ const AddUserModal = ({ onClose, onSave }) => {
                   setErrors({ ...errors, facultyId: '' });
                 }}
                 className={`w-full px-3 py-2 bg-gray-700 border ${errors.facultyId ? 'border-red-500' : 'border-gray-600'} rounded-lg text-white focus:outline-none focus:border-blue-500`}
-                placeholder="e.g., FAC001"
+                placeholder={formData.role === 'student' ? 'e.g., 23071A1234' : 'e.g., FAC001'}
               />
               {errors.facultyId && <p className="text-red-400 text-sm mt-1">{errors.facultyId}</p>}
             </div>

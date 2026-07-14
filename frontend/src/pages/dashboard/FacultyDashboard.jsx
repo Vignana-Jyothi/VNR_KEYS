@@ -13,14 +13,20 @@ const FacultyDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // user must be read BEFORE getActiveTabFromPath so the initial call has it available
+  const { user } = useAuthStore();
+
   const getActiveTabFromPath = () => {
     const pathParts = location.pathname.split('/');
     const lastPart = pathParts[pathParts.length - 1];
     const validTabs = ['taken', 'keylist'];
     
-    // Check localStorage first if we're on the root faculty path
-    if (location.pathname === '/dashboard/faculty') {
-      const lastRoute = localStorage.getItem('lastFacultyRoute');
+    const rolePath = user?.role === 'student' ? 'student' : 'faculty';
+    const routeKey = user?.role === 'student' ? 'lastStudentRoute' : 'lastFacultyRoute';
+    
+    // Check localStorage first if we're on the root path
+    if (location.pathname === `/dashboard/${rolePath}`) {
+      const lastRoute = localStorage.getItem(routeKey);
       if (lastRoute) {
         const lastParts = lastRoute.split('/');
         const lastTab = lastParts[lastParts.length - 1];
@@ -45,7 +51,6 @@ const FacultyDashboard = () => {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [qrCollected, setQrCollected] = useState(false);
 
-  const { user } = useAuthStore();
   const {
     keys,
     frequentlyUsedKeys,
@@ -66,9 +71,11 @@ const FacultyDashboard = () => {
   }, [location.pathname]);
 
   const handleTabChange = (tabId) => {
-    const newPath = `/dashboard/faculty/${tabId}`;
+    const rolePath = user?.role === 'student' ? 'student' : 'faculty';
+    const routeKey = user?.role === 'student' ? 'lastStudentRoute' : 'lastFacultyRoute';
+    const newPath = `/dashboard/${rolePath}/${tabId}`;
     // Store the current route in localStorage
-    localStorage.setItem('lastFacultyRoute', newPath);
+    localStorage.setItem(routeKey, newPath);
     navigate(newPath);
     if (tabId === "taken" && user) {
       fetchTakenKeys(user.id).catch(console.error);
@@ -81,9 +88,12 @@ const FacultyDashboard = () => {
       fetchTakenKeys(user.id).catch(console.error);
       fetchUserFrequentlyUsedKeys().catch(console.error);
       
+      const rolePath = user?.role === 'student' ? 'student' : 'faculty';
+      const routeKey = user?.role === 'student' ? 'lastStudentRoute' : 'lastFacultyRoute';
+      
       // Restore last visited route from localStorage if available
-      const lastRoute = localStorage.getItem('lastFacultyRoute');
-      if (lastRoute && location.pathname === '/dashboard/faculty') {
+      const lastRoute = localStorage.getItem(routeKey);
+      if (lastRoute && location.pathname === `/dashboard/${rolePath}`) {
         navigate(lastRoute);
       }
     }
@@ -254,7 +264,9 @@ const FacultyDashboard = () => {
       <div className="p-4 border-b border-white/20">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Faculty Dashboard</h1>
+            <h1 className="text-2xl font-bold text-white">
+              {user?.role === "student" ? "Student Dashboard" : "Faculty Dashboard"}
+            </h1>
             <p className="text-gray-300">Welcome, {user?.name}</p>
           </div>        </div>
       </div>

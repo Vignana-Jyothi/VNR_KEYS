@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import Key from "../models/key.model.js";
+import { Logbook } from "../models/logbook.model.js";
 import { asyncHandler } from "../utils/errorHandler.js";
 import mongoose from "mongoose";
 
@@ -18,7 +19,8 @@ export const getAdminDashboard = asyncHandler(async (req, res) => {
 		}
 	]);
 
-	const recentUsers = await User.find()
+	const past24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+	const recentUsers = await User.find({ createdAt: { $gte: past24Hours } })
 		.select('-password -resetPasswordToken -verificationToken')
 		.sort({ createdAt: -1 })
 		.limit(10);
@@ -97,16 +99,6 @@ export const getFacultyDashboard = asyncHandler(async (req, res) => {
 		totalRequests: 65
 	};
 
-	res.status(200).json({
-		success: true,
-		message: "Faculty dashboard data retrieved successfully",
-		data: {
-			user: currentUser,
-			stats: facultyStats,
-			userRole: req.userRole
-		}
-	});
-
 	// Recent activity (mock data - replace with actual activity tracking)
 	const recentActivity = [
 		{ id: 1, action: "Resolved ticket #1234", timestamp: new Date(Date.now() - 1000 * 60 * 30) },
@@ -116,10 +108,10 @@ export const getFacultyDashboard = asyncHandler(async (req, res) => {
 
 	res.status(200).json({
 		success: true,
-		message: "Operator dashboard data retrieved successfully",
+		message: "Faculty dashboard data retrieved successfully",
 		data: {
 			user: currentUser,
-			stats: operatorStats,
+			stats: facultyStats,
 			recentActivity,
 			userRole: req.userRole
 		}
@@ -141,16 +133,6 @@ export const getSecurityDashboard = asyncHandler(async (req, res) => {
 		totalTransactions: 42
 	};
 
-	res.status(200).json({
-		success: true,
-		message: "Security dashboard data retrieved successfully",
-		data: {
-			user: currentUser,
-			stats: securityStats,
-			userRole: req.userRole
-		}
-	});
-
 	// Recent incidents (mock data - replace with actual incident tracking)
 	const recentIncidents = [
 		{ 
@@ -171,10 +153,10 @@ export const getSecurityDashboard = asyncHandler(async (req, res) => {
 
 	res.status(200).json({
 		success: true,
-		message: "Responder dashboard data retrieved successfully",
+		message: "Security dashboard data retrieved successfully",
 		data: {
 			user: currentUser,
-			stats: responderStats,
+			stats: securityStats,
 			recentIncidents,
 			userRole: req.userRole
 		}
@@ -276,27 +258,27 @@ export const createUser = asyncHandler(async (req, res) => {
 	}
 
 	// Validate role
-	const validRoles = ['admin', 'faculty', 'security'];
+	const validRoles = ['admin', 'faculty', 'student', 'security'];
 	if (!validRoles.includes(role)) {
 		return res.status(400).json({
 			success: false,
-			message: "Invalid role. Must be one of: admin, faculty, security"
+			message: "Invalid role. Must be one of: admin, faculty, student, security"
 		});
 	}
 
-	// Validate department for faculty
-	if (role === 'faculty' && !department) {
+	// Validate department for faculty/student
+	if ((role === 'faculty' || role === 'student') && !department) {
 		return res.status(400).json({
 			success: false,
-			message: "Department is required for faculty users"
+			message: `Department is required for ${role} users`
 		});
 	}
 
-	// Validate facultyId for faculty
-	if (role === 'faculty' && !facultyId) {
+	// Validate facultyId for faculty/student
+	if ((role === 'faculty' || role === 'student') && !facultyId) {
 		return res.status(400).json({
 			success: false,
-			message: "Faculty ID is required for faculty users"
+			message: `${role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} is required`
 		});
 	}
 
@@ -309,26 +291,24 @@ export const createUser = asyncHandler(async (req, res) => {
 		});
 	}
 
-	// Check if facultyId already exists (for faculty users)
-	if (role === 'faculty') {
+	// Check if facultyId already exists (for faculty/student users)
+	if (role === 'faculty' || role === 'student') {
 		const existingFacultyId = await User.findOne({ facultyId });
 		if (existingFacultyId) {
 			return res.status(409).json({
 				success: false,
-				message: "Faculty ID already exists. Please use a different Faculty ID"
+				message: `${role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} already exists. Please use a different ID`
 			});
 		}
 	}
 
 	// Create new user
-	// Note: Since we use Google OAuth, we need a temporary googleId
-	// The actual user will need to login with Google to activate their account
 	const newUser = new User({
 		name: name.trim(),
 		email: email.trim().toLowerCase(),
 		role,
-		department: role === 'faculty' ? department : undefined,
-		facultyId: role === 'faculty' ? facultyId.trim() : undefined,
+		department: (role === 'faculty' || role === 'student') ? department : undefined,
+		facultyId: (role === 'faculty' || role === 'student') ? facultyId.trim() : undefined,
 		googleId: `manual_${Date.now()}_${Math.random()}`, // Temporary ID for manually created users
 		provider: 'google',
 		isVerified: true // Admin-created users are auto-verified
@@ -395,7 +375,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 	}
 
 	// Validate role
-	const validRoles = ['admin', 'faculty', 'security'];
+	const validRoles = ['admin', 'faculty', 'student', 'security'];
 	if (role && !validRoles.includes(role)) {
 		return res.status(400).json({
 			success: false,
@@ -428,8 +408,8 @@ export const updateUser = asyncHandler(async (req, res) => {
 	if (role) {
 		updateData.role = role;
 
-		// Clear faculty-specific fields when changing from faculty to other roles
-		if (role !== 'faculty') {
+		// Clear faculty-specific fields when changing from faculty/student to other roles
+		if (role !== 'faculty' && role !== 'student') {
 			unsetData.department = "";
 			unsetData.facultyId = "";
 		}
@@ -697,43 +677,42 @@ export const getKeyUsageAnalytics = asyncHandler(async (req, res) => {
 	switch (timeRange) {
 		case '1d':
 			startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-			groupBy = { $dateToString: { format: "%H:00", date: "$takenAt" } };
+			groupBy = { $dateToString: { format: "%H:00", date: "$takenAt", timezone: "Asia/Kolkata" } };
 			break;
 		case '7d':
 			startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-			groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$takenAt" } };
+			groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$takenAt", timezone: "Asia/Kolkata" } };
 			break;
 		case '30d':
 			startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-			groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$takenAt" } };
+			groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$takenAt", timezone: "Asia/Kolkata" } };
 			break;
 		case '90d':
 			startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-			groupBy = { $dateToString: { format: "%Y-W%U", date: "$takenAt" } };
+			groupBy = { $dateToString: { format: "%Y-W%U", date: "$takenAt", timezone: "Asia/Kolkata" } };
 			break;
 		default:
 			startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-			groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$takenAt" } };
+			groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$takenAt", timezone: "Asia/Kolkata" } };
 	}
 
 	// Build match query
 	const matchQuery = {
-		takenAt: { $gte: startDate, $lte: now },
-		status: 'unavailable'
+		takenAt: { $gte: startDate, $lte: now }
 	};
 
 	if (department !== 'all') {
 		matchQuery.department = department;
 	}
 
-	// Get key usage over time
-	const usageOverTime = await Key.aggregate([
+	// Get key usage over time (from Logbook)
+	const usageOverTime = await Logbook.aggregate([
 		{ $match: matchQuery },
 		{
 			$group: {
 				_id: groupBy,
 				count: { $sum: 1 },
-				uniqueKeys: { $addToSet: "$_id" }
+				uniqueKeys: { $addToSet: "$keyNumber" }
 			}
 		},
 		{
@@ -746,8 +725,8 @@ export const getKeyUsageAnalytics = asyncHandler(async (req, res) => {
 		{ $sort: { period: 1 } }
 	]);
 
-	// Get peak usage hours (for daily view)
-	const peakUsageHours = await Key.aggregate([
+	// Get peak usage hours (from Logbook)
+	const peakUsageHours = await Logbook.aggregate([
 		{
 			$match: {
 				takenAt: { $gte: startDate, $lte: now },
@@ -756,7 +735,7 @@ export const getKeyUsageAnalytics = asyncHandler(async (req, res) => {
 		},
 		{
 			$group: {
-				_id: { $hour: "$takenAt" },
+				_id: { $hour: { date: "$takenAt", timezone: "Asia/Kolkata" } },
 				count: { $sum: 1 }
 			}
 		},
@@ -764,8 +743,8 @@ export const getKeyUsageAnalytics = asyncHandler(async (req, res) => {
 		{ $limit: 5 }
 	]);
 
-	// Get most used keys
-	const mostUsedKeys = await Key.aggregate([
+	// Get most used keys (from Logbook)
+	const mostUsedKeys = await Logbook.aggregate([
 		{
 			$match: {
 				takenAt: { $gte: startDate, $lte: now },
@@ -774,7 +753,7 @@ export const getKeyUsageAnalytics = asyncHandler(async (req, res) => {
 		},
 		{
 			$group: {
-				_id: "$_id",
+				_id: "$keyNumber",
 				keyNumber: { $first: "$keyNumber" },
 				keyName: { $first: "$keyName" },
 				department: { $first: "$department" },
@@ -952,24 +931,24 @@ export const getPeakUsageAnalytics = asyncHandler(async (req, res) => {
 		matchQuery.department = department;
 	}
 
-	// Get hourly usage pattern
-	const hourlyUsage = await Key.aggregate([
+	// Get hourly usage pattern (from Logbook)
+	const hourlyUsage = await Logbook.aggregate([
 		{ $match: matchQuery },
 		{
 			$group: {
-				_id: { $hour: "$takenAt" },
+				_id: { $hour: { date: "$takenAt", timezone: "Asia/Kolkata" } },
 				count: { $sum: 1 }
 			}
 		},
 		{ $sort: { _id: 1 } }
 	]);
 
-	// Get daily usage pattern
-	const dailyUsage = await Key.aggregate([
+	// Get daily usage pattern (from Logbook)
+	const dailyUsage = await Logbook.aggregate([
 		{ $match: matchQuery },
 		{
 			$group: {
-				_id: { $dayOfWeek: "$takenAt" },
+				_id: { $dayOfWeek: { date: "$takenAt", timezone: "Asia/Kolkata" } },
 				count: { $sum: 1 }
 			}
 		},
@@ -977,7 +956,7 @@ export const getPeakUsageAnalytics = asyncHandler(async (req, res) => {
 	]);
 
 	// Get peak usage times
-	const peakHours = hourlyUsage
+	const peakHours = [...hourlyUsage]
 		.sort((a, b) => b.count - a.count)
 		.slice(0, 3)
 		.map(item => ({

@@ -27,6 +27,7 @@ router.use(verifyToken);
 // Role-specific dashboard endpoints
 router.get("/admin", rolePermissions.adminOnly, getAdminDashboard);
 router.get("/faculty", rolePermissions.adminOrFaculty, getFacultyDashboard);
+router.get("/student", rolePermissions.adminOrFaculty, getFacultyDashboard);
 router.get("/security", rolePermissions.adminOrSecurity, getSecurityDashboard);
 
 // Admin-only user management endpoints
