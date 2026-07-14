@@ -180,42 +180,41 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className={`p-6 transition-all duration-300 ${sidebarOpen ? "ml-0" : "ml-0"}`}>
+    <div className={`p-4 md:p-6 transition-all duration-300`}>
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-8 flex items-center space-x-4"
+        className="mb-6 md:mb-8 flex items-center gap-3"
       >
-        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-          <User className="text-white h-6 w-6" />
+        <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+          <User className="text-white h-5 w-5 md:h-6 md:w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-gray-400 text-sm">Welcome back, {user?.name}</p>
+          <h1 className="text-xl md:text-3xl font-bold text-white">Admin Dashboard</h1>
+          <p className="text-gray-400 text-xs md:text-sm">Welcome back, {user?.name}</p>
         </div>
       </motion.div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4
- gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
         {statsCards.map((stat, index) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
+            className="bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">{stat.label}</p>
-                <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
-                <p className="text-gray-500 text-sm mt-1">{stat.change}</p>
+              <div className="min-w-0">
+                <p className="text-gray-400 text-xs font-medium truncate">{stat.label}</p>
+                <p className={`text-xl md:text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
+                <p className="text-gray-500 text-xs mt-1 truncate">{stat.change}</p>
               </div>
-              <div className="p-3 rounded-lg bg-gray-700">
-                <stat.icon className={`h-6 w-6 ${stat.color}`} />
+              <div className="p-2 md:p-3 rounded-lg bg-gray-700 flex-shrink-0 ml-2">
+                <stat.icon className={`h-5 w-5 md:h-6 md:w-6 ${stat.color}`} />
               </div>
             </div>
           </motion.div>
@@ -227,10 +226,10 @@ const AdminDashboard = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 mb-6"
+        className="bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700 mb-6"
       >
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-          <Filter className="h-5 w-5 mr-2 text-blue-400" />
+        <h3 className="text-lg md:text-xl font-semibold text-white mb-4 flex items-center">
+          <Filter className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-400" />
           Analytics Filters
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -491,40 +490,40 @@ const AdminDashboard = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.6 }}
-        className="mt-8 bg-gray-800/50 rounded-xl p-6 border border-gray-700 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
+        className="mt-6 md:mt-8 bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
       >
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-          <Settings className="h-5 w-5 mr-2 text-blue-400" />
+        <h3 className="text-lg md:text-xl font-semibold text-white mb-4 flex items-center">
+          <Settings className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-400" />
           Admin Actions
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <button
             onClick={handleManageUsers}
-            className="flex items-center justify-center p-4 bg-gray-700 hover:bg-blue-600 rounded-lg transition-colors"
+            className="flex items-center justify-center p-3 md:p-4 min-h-[52px] bg-gray-700 hover:bg-blue-600 rounded-lg transition-colors"
           >
-            <Users className="h-5 w-5 mr-2 text-blue-400" />
-            <span className="text-white font-medium">Manage Users</span>
+            <Users className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-400 flex-shrink-0" />
+            <span className="text-white font-medium text-sm md:text-base">Manage Users</span>
           </button>
           <button
             onClick={handleManageKeys}
-            className="flex items-center justify-center p-4 bg-gray-700 hover:bg-indigo-600 rounded-lg transition-colors"
+            className="flex items-center justify-center p-3 md:p-4 min-h-[52px] bg-gray-700 hover:bg-indigo-600 rounded-lg transition-colors"
           >
-            <Key className="h-5 w-5 mr-2 text-blue-400" />
-            <span className="text-white font-medium">Manage Keys</span>
+            <Key className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-400 flex-shrink-0" />
+            <span className="text-white font-medium text-sm md:text-base">Manage Keys</span>
           </button>
           <button
             onClick={handleSecuritySettings}
-            className="flex items-center justify-center p-4 bg-gray-700 hover:bg-green-600 rounded-lg transition-colors"
+            className="flex items-center justify-center p-3 md:p-4 min-h-[52px] bg-gray-700 hover:bg-green-600 rounded-lg transition-colors"
           >
-            <Shield className="h-5 w-5 mr-2 text-blue-400" />
-            <span className="text-white font-medium">Security Settings</span>
+            <Shield className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-400 flex-shrink-0" />
+            <span className="text-white font-medium text-sm md:text-base">Security</span>
           </button>
           <button
             onClick={handleViewReports}
-            className="flex items-center justify-center p-4 bg-gray-700 hover:bg-purple-600 rounded-lg transition-colors"
+            className="flex items-center justify-center p-3 md:p-4 min-h-[52px] bg-gray-700 hover:bg-purple-600 rounded-lg transition-colors"
           >
-            <BarChart3 className="h-5 w-5 mr-2 text-blue-400" />
-            <span className="text-white font-medium">View Reports</span>
+            <BarChart3 className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-400 flex-shrink-0" />
+            <span className="text-white font-medium text-sm md:text-base">Reports</span>
           </button>
         </div>
       </motion.div>

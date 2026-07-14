@@ -52,9 +52,9 @@ const DepartmentsSection = ({ keys, onDepartmentClick, selectedDepartment }) => 
 	}, [counts]);
 
 	return (
-		<div className="mb-8">
-			<h3 className="text-lg font-semibold text-white mb-4">Departments</h3>
-			<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+		<div className="mb-6 md:mb-8">
+			<h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Departments</h3>
+			<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
 				{sortedDepartments.map(({ value, label }) => (
 					<DepartmentCard
 						key={value}

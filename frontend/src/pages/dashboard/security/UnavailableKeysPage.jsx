@@ -47,8 +47,8 @@ const UnavailableKeysPage = () => {
       {/* Main Content - Only show when not searching */}
       {!searchQuery.trim() && (
         <>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Unavailable Keys</h2>
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-white">Unavailable Keys</h2>
             <div className="bg-red-600/20 text-red-300 px-3 py-1 rounded-full text-sm font-medium border border-red-600/30">
               {unavailableKeys.length} Unavailable
             </div>

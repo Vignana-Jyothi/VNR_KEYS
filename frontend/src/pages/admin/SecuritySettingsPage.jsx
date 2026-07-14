@@ -81,46 +81,46 @@ const SecuritySettingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-900 p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <Shield className="h-8 w-8 text-green-400 mr-4" />
-            <h1 className="text-3xl font-bold text-white">Security Settings</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 md:mb-8">
+          <div className="flex items-center gap-3">
+            <Shield className="h-6 w-6 md:h-8 md:w-8 text-green-400 flex-shrink-0" />
+            <h1 className="text-xl md:text-3xl font-bold text-white">Security Settings</h1>
           </div>
           <button
             onClick={handleSaveSettings}
             disabled={saving}
-            className="flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium"
           >
-            <Save className="h-5 w-5 mr-2" />
+            <Save className="h-4 w-4" />
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
+          {/* Sidebar tabs — horizontal scroll on mobile */}
           <div className="lg:col-span-1">
-            <div className="bg-gray-800 rounded-xl p-4">
-              <nav className="space-y-2">
+            <div className="bg-gray-800 rounded-xl p-3 md:p-4">
+              <nav className="flex lg:flex-col gap-2 overflow-x-auto pb-1 lg:pb-0 scrollbar-hide">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2.5 min-h-[44px] rounded-lg text-left transition-colors whitespace-nowrap flex-shrink-0 lg:w-full text-sm ${
                         activeTab === tab.id
                           ? 'bg-green-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700'
                       }`}
                     >
-                      <Icon className="h-5 w-5 mr-3" />
+                      <Icon className="h-4 w-4 flex-shrink-0" />
                       {tab.label}
                     </button>
                   );

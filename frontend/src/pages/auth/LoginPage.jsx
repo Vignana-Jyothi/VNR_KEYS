@@ -72,28 +72,28 @@ const LoginPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="max-w-md w-full bg-slate-900/70 backdrop-blur-xl rounded-2xl 
-          border border-blue-500/30 p-6
+          border border-blue-500/30 p-5 sm:p-6
           transition-all duration-500 
           hover:shadow-[0_0_25px_rgba(59,130,246,0.6)] hover:border-blue-400"
       >
         {/* Title */}
-        <h2 className="text-2xl font-bold mb-4 text-center bg-gradient-to-r from-blue-400 to-cyan-500 text-transparent bg-clip-text">
+        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center bg-gradient-to-r from-blue-400 to-cyan-500 text-transparent bg-clip-text">
           Welcome to VNR Keys
         </h2>
 
-        <p className="text-gray-300 text-center mb-5">
+        <p className="text-gray-300 text-sm sm:text-base text-center mb-4 sm:mb-5">
           Sign in with your Google account to continue
         </p>
 
         {error && (
-          <p className="text-red-500 font-semibold mb-3 text-center">{error}</p>
+          <p className="text-red-500 font-semibold mb-3 text-center text-sm">{error}</p>
         )}
 
         {/* Google OAuth Button */}
         <GoogleOAuthButton isLoading={isLoading} />
 
         {/* Inline footer (no box) */}
-        <p className="text-sm text-gray-400 text-center mt-4">
+        <p className="text-xs sm:text-sm text-gray-400 text-center mt-4">
           Secure access with Google authentication
         </p>
       </motion.div>

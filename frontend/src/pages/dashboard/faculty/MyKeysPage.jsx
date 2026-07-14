@@ -32,8 +32,8 @@ const MyKeysPage = () => {
       )}
       {!searchQuery.trim() && (
         <>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">My Keys</h2>
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-white">My Keys</h2>
             <div className="flex items-center gap-3">
               <div className="bg-gradient-to-r from-blue-600 to-cyan-400/40 text-white px-3 py-1 rounded-full text-sm font-medium border border-blue-600/30 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
                 {takenKeys.length} Taken

@@ -148,19 +148,19 @@ const ManageApiKeysPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 md:mb-8"
         >
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <Shield className="w-8 h-8 text-blue-400" />
+          <h1 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
+            <Shield className="w-6 h-6 md:w-8 md:h-8 text-blue-400 flex-shrink-0" />
             Manage Keys
           </h1>
-          <p className="text-gray-400">
+          <p className="text-gray-400 text-sm">
             Add, edit, and manage all keys in the system
           </p>
         </motion.div>
@@ -170,53 +170,55 @@ const ManageApiKeysPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gray-800 rounded-xl p-6 mb-6 border border-gray-700"
+          className="bg-gray-800 rounded-xl p-4 md:p-6 mb-6 border border-gray-700"
         >
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* Search and Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
               {/* Search */}
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <div className="relative flex-1 sm:max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Search keys..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
               </div>
 
-              {/* Department Filter */}
-              <select
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Departments</option>
-                {departments.map(department => (
-                  <option key={department} value={department}>{department}</option>
-                ))}
-              </select>
+              <div className="flex gap-3 flex-wrap">
+                {/* Department Filter */}
+                <select
+                  value={departmentFilter}
+                  onChange={(e) => setDepartmentFilter(e.target.value)}
+                  className="flex-1 sm:flex-none px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-[130px]"
+                >
+                  <option value="all">All Departments</option>
+                  {departments.map(department => (
+                    <option key={department} value={department}>{department}</option>
+                  ))}
+                </select>
 
-              {/* Status Filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Status</option>
-                <option value="available">Available Keys</option>
-                <option value="unavailable">Unavailable Keys</option>
-              </select>
+                {/* Status Filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="flex-1 sm:flex-none px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-[130px]"
+                >
+                  <option value="all">All Status</option>
+                  <option value="available">Available Keys</option>
+                  <option value="unavailable">Unavailable Keys</option>
+                </select>
+              </div>
             </div>
 
             {/* Add Key Button */}
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 min-h-[44px] rounded-lg font-medium transition-colors text-sm w-full sm:w-auto lg:w-auto"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               Add New Key
             </button>
           </div>
@@ -298,14 +300,14 @@ const ManageApiKeysPage = () => {
 
           {/* Load More Button */}
           {hasMoreKeys && !isLoading && (
-            <div className="px-6 py-4 bg-gray-800 border-t border-gray-700">
-              <div className="flex items-center justify-between">
+            <div className="px-4 md:px-6 py-4 bg-gray-800 border-t border-gray-700">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="text-sm text-gray-400">
                   Showing {displayedKeys.length} of {filteredKeys.length} keys
                 </div>
                 <button
                   onClick={handleLoadMore}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 min-h-[44px] rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Load More ({isMobile ? '4' : '10'} more)
@@ -566,11 +568,11 @@ const AddKeyModal = ({ isOpen, onClose, onSubmit, isLoading, initialData, isEdit
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-gray-900 rounded-xl p-6 max-w-2xl w-full border border-gray-700 max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, scale: 0.9, y: 40 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="bg-gray-900 rounded-t-2xl sm:rounded-xl p-5 sm:p-6 w-full sm:max-w-2xl border-t sm:border border-gray-700 max-h-[92vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-white">{isEdit ? 'Edit Key' : 'Add New Key'}</h3>
@@ -616,7 +618,7 @@ const AddKeyModal = ({ isOpen, onClose, onSubmit, isLoading, initialData, isEdit
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Location *
+                Room No *
               </label>
               <input
                 type="text"
@@ -625,7 +627,7 @@ const AddKeyModal = ({ isOpen, onClose, onSubmit, isLoading, initialData, isEdit
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Block A, Room 101"
+                placeholder="e.g., Room 101"
               />
             </div>
 
@@ -732,19 +734,6 @@ const AddKeyModal = ({ isOpen, onClose, onSubmit, isLoading, initialData, isEdit
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Optional description..."
             />
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="frequentlyUsed"
-              checked={formData.frequentlyUsed}
-              onChange={handleChange}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-            />
-            <label className="ml-2 text-sm text-gray-300">
-              Mark as frequently used
-            </label>
           </div>
 
           <div className="flex gap-3 pt-4">

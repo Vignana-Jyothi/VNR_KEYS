@@ -143,18 +143,18 @@ const AuditLogViewer = ({ keyId = null, userId = null, showCollectiveOnly = fals
     <div className="space-y-6">
       {/* Filters */}
       <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-        <div className="flex items-center space-x-2 mb-4">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-white">Filters</h3>
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <h3 className="text-base font-semibold text-white">Filters</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Action</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">Action</label>
             <select
               value={filters.action}
               onChange={(e) => setFilters(prev => ({ ...prev, action: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="">All Actions</option>
               <option value="key_taken">Key Taken</option>
@@ -167,31 +167,31 @@ const AuditLogViewer = ({ keyId = null, userId = null, showCollectiveOnly = fals
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">From Date</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">From Date</label>
             <input
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">To Date</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">To Date</label>
             <input
               type="date"
               value={filters.dateTo}
               onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Limit</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">Limit</label>
             <select
               value={filters.limit}
               onChange={(e) => setFilters(prev => ({ ...prev, limit: parseInt(e.target.value) }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
             >
               <option value={25}>25 entries</option>
               <option value={50}>50 entries</option>
@@ -204,20 +204,22 @@ const AuditLogViewer = ({ keyId = null, userId = null, showCollectiveOnly = fals
 
       {/* Audit Logs */}
       <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-        <div className="p-6 border-b border-gray-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">
-              {showCollectiveOnly ? 'Collective Return Logs' : 'Audit Trail'}
-            </h2>
+        <div className="p-4 md:p-6 border-b border-gray-700">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg md:text-xl font-semibold text-white">
+                {showCollectiveOnly ? 'Collective Return Logs' : 'Audit Trail'}
+              </h2>
+              <p className="text-gray-400 text-sm mt-0.5">{auditLogs.length} entries found</p>
+            </div>
             <button
               onClick={fetchAuditLogs}
-              className="flex items-center space-x-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+              className="flex items-center gap-2 px-3 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Refresh</span>
             </button>
           </div>
-          <p className="text-gray-400 mt-1">{auditLogs.length} entries found</p>
         </div>
 
         {auditLogs.length === 0 ? (
@@ -233,29 +235,29 @@ const AuditLogViewer = ({ keyId = null, userId = null, showCollectiveOnly = fals
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="p-6 hover:bg-gray-750 transition-colors"
+                className="p-4 md:p-6 hover:bg-gray-750 transition-colors"
               >
-                <div className="flex items-start space-x-4">
+                <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-1">
                     {getActionIcon(log.action)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-white font-medium">
+                    <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-white font-medium text-sm md:text-base">
                           {getActionLabel(log.action)}
                         </span>
                         {log.metadata?.isCollectiveReturn && (
-                          <span className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full">
+                          <span className="px-2 py-0.5 bg-orange-600 text-white text-xs rounded-full">
                             Collective
                           </span>
                         )}
                       </div>
-                      <span className="text-gray-400 text-sm">{getTimeAgo(log.createdAt)}</span>
+                      <span className="text-gray-400 text-xs flex-shrink-0">{getTimeAgo(log.createdAt)}</span>
                     </div>
                     
-                    <div className="mt-2 space-y-1">
+                    <div className="space-y-1 text-xs md:text-sm">
                       <p className="text-gray-300">
                         <span className="font-medium">Key:</span> {log.keyDetails.keyNumber} - {log.keyDetails.keyName}
                       </p>
@@ -263,15 +265,13 @@ const AuditLogViewer = ({ keyId = null, userId = null, showCollectiveOnly = fals
                         <span className="font-medium">Location:</span> {log.keyDetails.location}
                       </p>
                       <p className="text-gray-300">
-                        <span className="font-medium">Performed by:</span> {log.performedBy.name} ({log.performedBy.role})
+                        <span className="font-medium">By:</span> {log.performedBy.name} ({log.performedBy.role})
                       </p>
-                      
                       {log.originalUser && (
                         <p className="text-gray-300">
                           <span className="font-medium">Original user:</span> {log.originalUser.name}
                         </p>
                       )}
-                      
                       {log.metadata?.reason && (
                         <p className="text-gray-300">
                           <span className="font-medium">Reason:</span> {log.metadata.reason}
@@ -279,7 +279,7 @@ const AuditLogViewer = ({ keyId = null, userId = null, showCollectiveOnly = fals
                       )}
                     </div>
                     
-                    <p className="text-gray-500 text-sm mt-2">{formatDate(log.createdAt)}</p>
+                    <p className="text-gray-500 text-xs mt-2">{formatDate(log.createdAt)}</p>
                   </div>
                 </div>
               </motion.div>

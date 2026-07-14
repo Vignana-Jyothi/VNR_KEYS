@@ -14,7 +14,6 @@ import {
 import VolunteerReturnQRModal from "../../components/keys/VolunteerReturnQRModal";
 import { useAuthStore } from "../../store/authStore";
 import { useKeyStore } from "../../store/keyStore";
-import { useSidebar } from "../../components/layout/DashboardLayout";
 
 
 const CollectiveKeyReturnPage = () => {
@@ -26,7 +25,6 @@ const CollectiveKeyReturnPage = () => {
   const [error, setError] = useState(null);
 
 
-  const { sidebarOpen } = useSidebar();
   const { collectiveReturnKeyAPI, getAllTakenKeysAPI } = useKeyStore();
   const { user } = useAuthStore();
 
@@ -131,7 +129,7 @@ const CollectiveKeyReturnPage = () => {
 
   if (isLoading) {
     return (
-      <div className={`p-6 transition-all duration-300 ${sidebarOpen ? 'ml-0' : 'ml-0'}`}>
+      <div className="p-4 md:p-6">
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="w-8 h-8 text-blue-400 animate-spin" />
           <span className="ml-2 text-gray-300">Loading taken keys...</span>
@@ -142,7 +140,7 @@ const CollectiveKeyReturnPage = () => {
 
   if (error) {
     return (
-      <div className={`p-6 transition-all duration-300 ${sidebarOpen ? 'ml-0' : 'ml-0'}`}>
+      <div className="p-4 md:p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
@@ -150,7 +148,7 @@ const CollectiveKeyReturnPage = () => {
             <p className="text-gray-400 mb-4">{error}</p>
             <button
               onClick={fetchAllTakenKeys}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
             >
               Try Again
             </button>
@@ -161,31 +159,29 @@ const CollectiveKeyReturnPage = () => {
   }
 
   return (
-    <div className={`p-6 transition-all duration-300 ${sidebarOpen ? 'ml-0' : 'ml-0'}`}>
+    <div className={`p-4 md:p-6 transition-all duration-300`}>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6 md:mb-8"
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2">
               Volunteer Key Return
             </h1>
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-sm">
               Return keys on behalf of other Faculty/Staff members
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={fetchAllTakenKeys}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
-            </button>
-          </div>
+          <button
+            onClick={fetchAllTakenKeys}
+            className="flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium flex-shrink-0"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </button>
         </div>
       </motion.div>
 
@@ -196,22 +192,22 @@ const CollectiveKeyReturnPage = () => {
         transition={{ delay: 0.1 }}
         className="mb-6"
       >
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <div className="flex flex-col gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search by key number, name, location, or user..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 text-sm"
             />
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={handleSelectAll}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 min-h-[44px] bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
             >
               {selectedKeys.length === filteredKeys.length && filteredKeys.length > 0 ? 'Deselect All' : 'Select All'}
             </button>
@@ -219,7 +215,7 @@ const CollectiveKeyReturnPage = () => {
             {selectedKeys.length > 0 && (
               <button
                 onClick={handleReturnKeys}
-                className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
               >
                 <KeyRound className="w-4 h-4" />
                 <span>Return {selectedKeys.length} Key{selectedKeys.length > 1 ? 's' : ''}</span>

@@ -32,14 +32,14 @@ const BlocksSection = ({ keys, onBlockClick, selectedBlock }) => {
 		}));
 
 	return (
-		<div className="mb-8">
-			<h3 className="text-lg font-semibold text-white mb-4">Blocks</h3>
+		<div className="mb-6 md:mb-8">
+			<h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Blocks</h3>
 			{sortedBlocks.length === 0 ? (
 				<div className="text-center py-8 bg-white/5 rounded-xl border border-white/10">
 					<p className="text-gray-400 text-lg">No blocks found</p>
 				</div>
 			) : (
-				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
 					{sortedBlocks.map(({ block, keyCount }) => (
 						<DepartmentCard
 							key={block}

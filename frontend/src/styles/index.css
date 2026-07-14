@@ -12,3 +12,10 @@
   display: none;  /* Safari and Chrome */
 }
 
+/* Notification highlight — applied when navigating from bell dropdown */
+.notification-highlight {
+  border-color: rgba(59, 130, 246, 0.6) !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}

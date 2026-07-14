@@ -44,19 +44,20 @@ const DepartmentView = ({
   return (
     <div className="space-y-6 pt-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="p-2 bg-gray-800 border border-gray-700 rounded-full 
-          transition-all duration-300 hover:bg-gray-700 hover:border-indigo-400"
+          className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center
+            bg-gray-800 border border-gray-700 rounded-full
+            transition-all duration-300 hover:bg-gray-700 hover:border-indigo-400 flex-shrink-0"
         >
           <ChevronLeft className="w-5 h-5 text-indigo-400" />
         </button>
-        <div>
-          <h2 className="text-2xl font-bold text-white">
+        <div className="min-w-0">
+          <h2 className="text-xl md:text-2xl font-bold text-white truncate">
             {department} Department
           </h2>
-          <p className="text-gray-300">{finalKeys.length} keys available</p>
+          <p className="text-gray-300 text-sm">{finalKeys.length} keys available</p>
         </div>
       </div>
 

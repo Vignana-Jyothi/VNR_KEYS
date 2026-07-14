@@ -846,6 +846,56 @@ export const useKeyStore = create((set, get) => ({
     }
   },
 
+  // Bulk take multiple keys at once (faculty/admin)
+  bulkTakeKeysAPI: async (keyIds) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.post(`${API_URL}/take-bulk`, { keyIds }, { withCredentials: true });
+      const { succeeded } = response.data.data;
+      // Update local keys state for all succeeded keys
+      if (succeeded.length > 0) {
+        const { keys, takenKeys } = get();
+        const succeededIds = new Set(succeeded.map(s => String(s.keyId)));
+        const updatedKeys = keys.map(k => succeededIds.has(k.id) ? { ...k, status: "unavailable" } : k);
+        set({ keys: updatedKeys, isLoading: false });
+        // Refresh taken keys
+        await get().fetchTakenKeys(null);
+      } else {
+        set({ isLoading: false });
+      }
+      return response.data.data;
+    } catch (error) {
+      console.error("Error in bulk take:", error);
+      const errorMessage = handleError(error);
+      set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Bulk return multiple keys at once (faculty/admin)
+  bulkReturnKeysAPI: async (keyIds) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await axios.post(`${API_URL}/return-bulk`, { keyIds }, { withCredentials: true });
+      const { succeeded } = response.data.data;
+      if (succeeded.length > 0) {
+        const succeededIds = new Set(succeeded.map(s => String(s.keyId)));
+        const { keys, takenKeys } = get();
+        const updatedKeys = keys.map(k => succeededIds.has(k.id) ? { ...k, status: "available", takenBy: null } : k);
+        const updatedTakenKeys = takenKeys.filter(k => !succeededIds.has(k.id));
+        set({ keys: updatedKeys, takenKeys: updatedTakenKeys, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
+      return response.data.data;
+    } catch (error) {
+      console.error("Error in bulk return:", error);
+      const errorMessage = handleError(error);
+      set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+
   // Get a single key by ID
   getKeyById: async (keyId) => {
     try {

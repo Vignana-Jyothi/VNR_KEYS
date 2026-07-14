@@ -64,22 +64,22 @@ const AboutPage = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center"
+        className="text-center pt-6 md:pt-8"
       >
-        <h1 className="text-4xl font-extrabold text-white mb-4 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
+        <h1 className="text-2xl md:text-4xl font-extrabold text-white mb-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
           {data.project.title}
         </h1>
-        <p className="text-blue-200 text-lg max-w-3xl mx-auto">
+        <p className="text-blue-200 text-sm md:text-lg max-w-3xl mx-auto">
           {data.project.description}
         </p>
       </motion.div>
 
       {/* Team Section */}
       <section>
-        <h2 className="text-2xl font-semibold text-white mb-6 text-center">
+        <h2 className="text-xl md:text-2xl font-semibold text-white mb-5 text-center">
           Meet the Team
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
           {data.team.map((member, idx) => (
             <motion.div
               key={idx}

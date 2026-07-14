@@ -107,23 +107,23 @@ const ManageUsersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-900 p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <Users className="h-8 w-8 text-blue-400 mr-4" />
-            <h1 className="text-3xl font-bold text-white">Manage Users</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 md:mb-8">
+          <div className="flex items-center gap-3">
+            <Users className="h-6 w-6 md:h-8 md:w-8 text-blue-400 flex-shrink-0" />
+            <h1 className="text-xl md:text-3xl font-bold text-white">Manage Users</h1>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-gray-800 rounded-xl p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <div className="bg-gray-800 rounded-xl p-4 md:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
@@ -131,7 +131,7 @@ const ManageUsersPage = () => {
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 text-sm"
               />
             </div>
             <div className="relative">
@@ -139,7 +139,7 @@ const ManageUsersPage = () => {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="pl-10 pr-8 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                className="w-full sm:w-auto pl-10 pr-8 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500 text-sm"
               >
                 <option value="">All Roles</option>
                 <option value="admin">Admin</option>
@@ -150,9 +150,9 @@ const ManageUsersPage = () => {
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
               Add User
             </button>
           </div>
@@ -229,22 +229,22 @@ const ManageUsersPage = () => {
           )}
 
           {/* Pagination */}
-          <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between">
+          <div className="px-4 md:px-6 py-4 border-t border-gray-700 flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-gray-400">
               Page {currentPage} of {totalPages}
             </div>
-            <div className="flex space-x-2">
+            <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 bg-gray-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                className="px-3 py-2 min-h-[44px] bg-gray-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
               >
                 Previous
               </button>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-gray-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                className="px-3 py-2 min-h-[44px] bg-gray-700 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
               >
                 Next
               </button>
@@ -408,7 +408,7 @@ const AddUserModal = ({ onClose, onSave }) => {
       newErrors.department = `Department is required for ${formData.role}`;
     }
     if ((formData.role === 'faculty' || formData.role === 'student') && !formData.facultyId.trim()) {
-      newErrors.facultyId = `${formData.role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} is required`;
+      newErrors.facultyId = `${formData.role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID / Job ID'} is required`;
     }
     return newErrors;
   };
@@ -504,7 +504,7 @@ const AddUserModal = ({ onClose, onSave }) => {
           {(formData.role === 'faculty' || formData.role === 'student') && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                {formData.role === 'student' ? 'Student ID / Roll Number *' : 'Faculty ID *'}
+                {formData.role === 'student' ? 'Student ID / Roll Number *' : 'Faculty ID / Job ID *'}
               </label>
               <input
                 type="text"

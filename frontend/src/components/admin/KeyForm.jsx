@@ -129,7 +129,7 @@ const KeyForm = ({
     }
 
     if (!formData.location.trim()) {
-      newErrors.location = 'Location is required';
+      newErrors.location = 'Room No is required';
     }
 
     if (!formData.category) {
@@ -177,12 +177,12 @@ const KeyForm = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-gray-900 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-700"
+        initial={{ opacity: 0, scale: 0.9, y: 40 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 40 }}
+        className="bg-gray-900 rounded-t-2xl sm:rounded-xl p-5 sm:p-6 w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto border-t sm:border border-gray-700"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -240,10 +240,10 @@ const KeyForm = ({
             )}
           </div>
 
-          {/* Location */}
+          {/* Room No */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Location *
+              Room No *
             </label>
             <input
               type="text"
@@ -252,7 +252,7 @@ const KeyForm = ({
               className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.location ? 'border-red-500' : 'border-gray-600'
               }`}
-              placeholder="e.g., Ground Floor, Room 101"
+              placeholder="e.g., Room 101, Ground Floor"
               disabled={isLoading}
             />
             {errors.location && (
@@ -339,21 +339,6 @@ const KeyForm = ({
               placeholder="Additional details about this key..."
               disabled={isLoading}
             />
-          </div>
-
-          {/* Frequently Used */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="frequentlyUsed"
-              checked={formData.frequentlyUsed}
-              onChange={(e) => handleInputChange('frequentlyUsed', e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
-              disabled={isLoading}
-            />
-            <label htmlFor="frequentlyUsed" className="ml-2 text-sm text-gray-300">
-              Mark as frequently used
-            </label>
           </div>
 
           {/* Action Buttons */}

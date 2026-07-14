@@ -109,19 +109,19 @@ function NotificationsSlidebar({ isOpen, onClose }) {
             exit={{ x: "100%" }}
             transition={{
               type: "tween",
-              ease: [0.25, 0.1, 0.25, 1], // buttery smooth easing
+              ease: [0.25, 0.1, 0.25, 1],
               duration: 0.7,
             }}
-            className="fixed right-0 top-0 h-full w-80 bg-gray-900 border-l border-gray-700 shadow-lg z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-xs sm:w-80 bg-gray-900 border-l border-gray-700 shadow-lg z-50 flex flex-col"
           >
             {/* Header */}
-<div className="flex items-center justify-between p-4 border-b border-blue-500">
-              <h2 className="text-white font-semibold text-lg">
+            <div className="flex items-center justify-between p-4 border-b border-blue-500">
+              <h2 className="text-white font-semibold text-base md:text-lg">
                 Notifications
               </h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="p-1.5 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <X size={20} />
               </button>

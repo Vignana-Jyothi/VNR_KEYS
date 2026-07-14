@@ -45,24 +45,19 @@ router.post(
   "/resend-daily-summary",
   rolePermissions.adminOrSecurity,
   asyncHandler(async (req, res) => {
-    // Check if it's after 5:20 PM
-    const now = new Date();
-    const targetTime = new Date();
-    targetTime.setHours(17, 20, 0, 0); // 5:20 PM
+    // Generate and send notifications ONLY to the requester
+    const result = await createDailySummaryNotifications(req.userId);
 
-    if (now < targetTime) {
-      return res.status(400).json({
+    if (!result) {
+      return res.status(500).json({
         success: false,
-        message: 'Daily summary notifications can only be resent after 5:20 PM'
+        message: 'Failed to generate daily summary. Please try again.'
       });
     }
 
-    // Generate and send notifications ONLY to the requester
-    const result = await createDailySummaryNotifications(req.user._id);
-
     res.status(200).json({
       success: true,
-      message: `Successfully sent ${result.totalNotifications} notification(s) about ${result.totalUnreturnedKeys} unreturned keys to you`,
+      message: `Daily summary sent — ${result.totalUnreturnedKeys ?? 0} unreturned key(s) at this time`,
       data: result
     });
   })

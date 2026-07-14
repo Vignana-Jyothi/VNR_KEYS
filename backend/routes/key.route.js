@@ -18,8 +18,8 @@ import {
   qrScanReturn,
   qrScanRequest,
   manualAssignKey,
-  // cleanupInactiveKeys,
 } from "../controllers/key.controller.js";
+import { takeBulk, returnBulk } from "../controllers/bulkKey.controller.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { rolePermissions } from "../middleware/roleAuth.js";
 
@@ -40,6 +40,10 @@ router.get("/my-frequently-used", getUserFrequentlyUsedKeys); // Get user's freq
 // POST routes - specific routes MUST come before parameterized routes
 router.post("/", rolePermissions.adminOrSecurity, createKey); // Create new key (admin or security)
 // router.post("/cleanup", rolePermissions.admin, cleanupInactiveKeys); // Cleanup inactive keys (admin only) - temporarily disabled
+
+// Bulk operations — faculty/admin checkout/return multiple keys at once
+router.post("/take-bulk", rolePermissions.adminOrFaculty, takeBulk);
+router.post("/return-bulk", rolePermissions.adminOrFaculty, returnBulk);
 
 // Add debugging middleware for QR scan routes
 router.use("/qr-scan/*", (req, res, next) => {

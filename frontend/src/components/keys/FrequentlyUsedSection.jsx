@@ -21,9 +21,9 @@ const FrequentlyUsedSection = ({
 	const filtered = applyAvailabilityFilter(keys, availabilityFilter).slice(0, 5); // ✅ limit to 5
 
 	return (
-		<div className="mb-8">
-			<h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-				<TrendingUp className="w-5 h-5" />
+		<div className="mb-6 md:mb-8">
+			<h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4 flex items-center gap-2">
+				<TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
 				Frequently Used Keys
 			</h3>
 			

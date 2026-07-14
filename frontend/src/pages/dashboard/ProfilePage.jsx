@@ -22,10 +22,10 @@ const ProfilePage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text mb-1 md:mb-2">
           Profile Settings
         </h1>
-        <p className="text-gray-300">
+        <p className="text-gray-300 text-sm md:text-base">
           Manage your account information and preferences
         </p>
       </motion.div>

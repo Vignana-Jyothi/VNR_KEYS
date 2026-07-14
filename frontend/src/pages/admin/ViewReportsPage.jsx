@@ -525,31 +525,43 @@ const ViewReportsPage = () => {
   const peakUsagePercentage = analyticsData.peakUsage?.usagePercentage || 0;
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-900 p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <BarChart3 className="h-8 w-8 text-purple-400 mr-4" />
-            <h1 className="text-3xl font-bold text-white">Analytics & Reports</h1>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+          {/* Title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-purple-400 flex-shrink-0" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight">
+              Analytics & Reports
+            </h1>
           </div>
-          <div className="flex items-center space-x-4">
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Refresh */}
             <button
               onClick={() => fetchAnalytics()}
-              className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center
+                bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              title="Refresh analytics"
             >
-              <RefreshCw className="h-5 w-5 text-gray-300" />
+              <RefreshCw className="h-4 w-4 md:h-5 md:w-5 text-gray-300" />
             </button>
+
+            {/* Export PDF */}
             <button
               onClick={handleExportReport}
-              className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 md:px-4 md:py-2
+                min-h-[44px] text-sm md:text-base font-medium
+                bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
             >
-              <Download className="h-5 w-5 mr-2" />
-              Export PDF
+              <Download className="h-4 w-4 flex-shrink-0" />
+              <span className="whitespace-nowrap">Export PDF</span>
             </button>
           </div>
         </div>
@@ -559,13 +571,13 @@ const ViewReportsPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 mb-6"
+          className="bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700 mb-6"
         >
-          <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <Filter className="h-5 w-5 mr-2 text-purple-400" />
+          <h3 className="text-lg md:text-xl font-semibold text-white mb-4 flex items-center">
+            <Filter className="h-4 w-4 md:h-5 md:w-5 mr-2 text-purple-400" />
             Analytics Filters
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Time Range</label>
               <select
@@ -676,10 +688,10 @@ const ViewReportsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"
+            className="bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700"
           >
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-purple-400" />
+            <h3 className="text-base md:text-xl font-semibold text-white mb-4 flex items-center">
+              <TrendingUp className="h-4 w-4 md:h-5 md:w-5 mr-2 text-purple-400" />
               Peak Usage Analytics
             </h3>
             {analyticsLoading ? (
@@ -701,10 +713,10 @@ const ViewReportsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"
+            className="bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700"
           >
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <Users className="h-5 w-5 mr-2 text-green-400" />
+            <h3 className="text-base md:text-xl font-semibold text-white mb-4 flex items-center">
+              <Users className="h-4 w-4 md:h-5 md:w-5 mr-2 text-green-400" />
               Active Users Trend
             </h3>
             {analyticsLoading ? (
@@ -726,10 +738,10 @@ const ViewReportsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
-            className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 lg:col-span-2"
+            className="bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700 lg:col-span-2"
           >
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <Key className="h-5 w-5 mr-2 text-blue-400" />
+            <h3 className="text-base md:text-xl font-semibold text-white mb-4 flex items-center">
+              <Key className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-400" />
               Key Usage Over Time
             </h3>
             {analyticsLoading ? (
@@ -748,7 +760,7 @@ const ViewReportsPage = () => {
         </div>
 
         {/* Detailed Reports */}
-        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+        <div className="bg-gray-800/50 rounded-xl p-4 md:p-6 border border-gray-700">
           <OverviewReport 
             reports={reports} 
             analyticsData={analyticsData}

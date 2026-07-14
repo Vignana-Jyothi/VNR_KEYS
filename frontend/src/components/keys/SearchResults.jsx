@@ -30,17 +30,17 @@ const SearchResults = ({
 
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
-          <Search className="w-5 h-5 text-green-400" />
-          <h3 className="text-lg font-semibold text-white">
+          <Search className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-white">
             Search Results
           </h3>
-          <span className="bg-green-600/20 text-green-300 px-2 py-1 rounded-full text-sm font-medium border border-green-600/30">
+          <span className="bg-green-600/20 text-green-300 px-2 py-0.5 rounded-full text-xs font-medium border border-green-600/30">
             {filteredKeys.length} result{filteredKeys.length !== 1 ? 's' : ''}
           </span>
         </div>
-        <div className="text-sm text-gray-400">
+        <div className="text-xs md:text-sm text-gray-400 truncate max-w-[140px]">
           "{searchQuery}"
         </div>
       </div>
