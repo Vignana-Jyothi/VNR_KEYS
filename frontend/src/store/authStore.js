@@ -51,8 +51,6 @@ export const useAuthStore = create((set, get) => ({
 				return '/dashboard/admin';
 			case 'faculty':
 				return '/dashboard/faculty';
-			case 'student':
-				return '/dashboard/student';
 			case 'security':
 				return '/dashboard/security';
 			default:

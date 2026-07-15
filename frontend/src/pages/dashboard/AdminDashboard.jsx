@@ -124,7 +124,7 @@ const AdminDashboard = () => {
     totalKeys: 0,
     activeKeys: 0,
     inactiveKeys: 0,
-    usersByRole: { admin: 0, security: 0, faculty: 0, student: 0 },
+    usersByRole: { admin: 0, security: 0, faculty: 0 },
   };
 
   // Calculate real-time key statistics
@@ -167,7 +167,6 @@ const AdminDashboard = () => {
   const roleDistribution = [
     { role: "Security", count: adminStats.usersByRole.security || 0, color: "bg-blue-500" },
     { role: "Faculty", count: adminStats.usersByRole.faculty || 0, color: "bg-green-500" },
-    { role: "Students", count: adminStats.usersByRole.student || 0, color: "bg-indigo-500" },
     { role: "Admins", count: adminStats.usersByRole.admin || 0, color: "bg-purple-500" },
   ];
 

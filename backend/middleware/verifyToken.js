@@ -13,13 +13,13 @@ export const verifyToken = async (req, res, next) => {
 		}
 	}
 
-	// Log token verification attempts for debugging
-	console.log(`[${req.method}] ${req.url} - Token: ${token ? 'Present' : 'Missing'}`);
-	console.log('Cookies:', Object.keys(req.cookies));
-	console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
+	// SECURITY: Do not log sensitive information like tokens or cookies
+	// Only log minimal info for debugging in development
+	if (process.env.NODE_ENV === 'development') {
+		console.log(`[${req.method}] ${req.url} - Token: ${token ? 'Present' : 'Missing'}`);
+	}
 
 	if (!token) {
-		console.log('❌ No token found in cookies or Authorization header');
 		return res.status(401).json({ success: false, message: "Unauthorized - no token provided" });
 	}
 
@@ -27,7 +27,6 @@ export const verifyToken = async (req, res, next) => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
 		if (!decoded) {
-			console.log('❌ Token decoded but empty');
 			return res.status(401).json({ success: false, message: "Unauthorized - invalid token" });
 		}
 
@@ -39,19 +38,31 @@ export const verifyToken = async (req, res, next) => {
 		try {
 			const user = await User.findById(decoded.userId).select('role');
 			if (user && user.role !== decoded.role) {
-				console.log(`🔄 Role mismatch detected - Token: ${decoded.role}, Database: ${user.role}`);
-				console.log(`🔄 Updating role from ${decoded.role} to ${user.role} for user ${decoded.userId}`);
+				// SECURITY: Log role mismatch without exposing user ID in production
+				if (process.env.NODE_ENV === 'development') {
+					console.log(`🔄 Role mismatch detected - Token: ${decoded.role}, Database: ${user.role}`);
+					console.log(`🔄 Updating role from ${decoded.role} to ${user.role} for user ${decoded.userId}`);
+				}
 				req.userRole = user.role; // Use the current role from database
 			}
 		} catch (dbError) {
-			console.log('⚠️ Warning: Could not verify role from database:', dbError.message);
+			// SECURITY: Do not log detailed error messages in production
+			if (process.env.NODE_ENV === 'development') {
+				console.log('⚠️ Warning: Could not verify role from database:', dbError.message);
+			}
 			// Continue with token role if database check fails
 		}
 
-		console.log(`✅ Token verified for user: ${decoded.userId} (${req.userRole})`);
+		// SECURITY: Do not log user ID in production
+		if (process.env.NODE_ENV === 'development') {
+			console.log(`✅ Token verified for user: ${decoded.userId} (${req.userRole})`);
+		}
 		next();
 	} catch (error) {
-		console.log("❌ Token verification error:", error.message);
+		// SECURITY: Do not log detailed error messages in production
+		if (process.env.NODE_ENV === 'development') {
+			console.log("❌ Token verification error:", error.message);
+		}
 		return res.status(500).json({ success: false, message: "Server error" });
 	}
 };

@@ -276,6 +276,9 @@ export const emitBulkComplete = (facultyUserId, batchId, action, result) => {
     timestamp: new Date().toISOString(),
   };
 
+  console.log(`🔵 emitBulkComplete: Emitting to user-${facultyUserId} with batchId=${batchId}, action=${action}`);
+  console.log('🔵 emitBulkComplete: Payload:', payload);
+
   // Emit to the faculty member's personal room so their QR modal can react
   global.io.to(`user-${facultyUserId}`).emit('bulk-complete', payload);
   global.io.to(`user-${facultyUserId}`).emit('user-key-updated', { ...payload, key: null });

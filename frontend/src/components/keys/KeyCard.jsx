@@ -256,8 +256,8 @@ const KeyCard = ({
         {/* Action Buttons */}
         {/* Action Buttons */}
         <div className="flex gap-2 mt-4">
-          {/* Faculty/Student: Generate QR when available */}
-          {(user?.role === "faculty" || user?.role === "student") &&
+          {/* Faculty: Generate QR when available */}
+          {user?.role === "faculty" &&
             variant === "default" &&
             keyData.status === "available" && (
               <button
@@ -269,8 +269,8 @@ const KeyCard = ({
               </button>
             )}
 
-          {/* Faculty/Student: Return QR when taken */}
-          {(user?.role === "faculty" || user?.role === "student") && variant === "taken" && (
+          {/* Faculty: Return QR when taken */}
+          {user?.role === "faculty" && variant === "taken" && (
             <button
               onClick={handleReturnKeyClick}
               disabled={isGeneratingQR}

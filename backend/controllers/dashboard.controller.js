@@ -258,27 +258,27 @@ export const createUser = asyncHandler(async (req, res) => {
 	}
 
 	// Validate role
-	const validRoles = ['admin', 'faculty', 'student', 'security'];
+	const validRoles = ['admin', 'faculty', 'security'];
 	if (!validRoles.includes(role)) {
 		return res.status(400).json({
 			success: false,
-			message: "Invalid role. Must be one of: admin, faculty, student, security"
+			message: "Invalid role. Must be one of: admin, faculty, security"
 		});
 	}
 
-	// Validate department for faculty/student
-	if ((role === 'faculty' || role === 'student') && !department) {
+	// Validate department for faculty
+	if (role === 'faculty' && !department) {
 		return res.status(400).json({
 			success: false,
 			message: `Department is required for ${role} users`
 		});
 	}
 
-	// Validate facultyId for faculty/student
-	if ((role === 'faculty' || role === 'student') && !facultyId) {
+	// Validate facultyId for faculty
+	if (role === 'faculty' && !facultyId) {
 		return res.status(400).json({
 			success: false,
-			message: `${role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} is required`
+			message: `Faculty ID is required`
 		});
 	}
 
@@ -291,13 +291,13 @@ export const createUser = asyncHandler(async (req, res) => {
 		});
 	}
 
-	// Check if facultyId already exists (for faculty/student users)
-	if (role === 'faculty' || role === 'student') {
+	// Check if facultyId already exists (for faculty users)
+	if (role === 'faculty') {
 		const existingFacultyId = await User.findOne({ facultyId });
 		if (existingFacultyId) {
 			return res.status(409).json({
 				success: false,
-				message: `${role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} already exists. Please use a different ID`
+				message: `Faculty ID already exists. Please use a different ID`
 			});
 		}
 	}
@@ -307,8 +307,8 @@ export const createUser = asyncHandler(async (req, res) => {
 		name: name.trim(),
 		email: email.trim().toLowerCase(),
 		role,
-		department: (role === 'faculty' || role === 'student') ? department : undefined,
-		facultyId: (role === 'faculty' || role === 'student') ? facultyId.trim() : undefined,
+		department: role === 'faculty' ? department : undefined,
+		facultyId: role === 'faculty' ? facultyId.trim() : undefined,
 		googleId: `manual_${Date.now()}_${Math.random()}`, // Temporary ID for manually created users
 		provider: 'google',
 		isVerified: true // Admin-created users are auto-verified
@@ -375,7 +375,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 	}
 
 	// Validate role
-	const validRoles = ['admin', 'faculty', 'student', 'security'];
+	const validRoles = ['admin', 'faculty', 'security'];
 	if (role && !validRoles.includes(role)) {
 		return res.status(400).json({
 			success: false,
@@ -408,8 +408,8 @@ export const updateUser = asyncHandler(async (req, res) => {
 	if (role) {
 		updateData.role = role;
 
-		// Clear faculty-specific fields when changing from faculty/student to other roles
-		if (role !== 'faculty' && role !== 'student') {
+		// Clear faculty-specific fields when changing from faculty to other roles
+		if (role !== 'faculty') {
 			unsetData.department = "";
 			unsetData.facultyId = "";
 		}

@@ -47,7 +47,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { 
       icon: Home, 
       label: "Home", 
-      path: (user?.role === "faculty" || user?.role === "student") ? `/dashboard/${user.role}/taken` : "/dashboard"
+      path: user?.role === "faculty" ? `/dashboard/faculty/taken` : "/dashboard"
     },
     { icon: Bell, label: "Notifications", path: "/dashboard/notifications" },
     { icon: User, label: "Profile", path: "/dashboard/profile" },
@@ -158,8 +158,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                       </NavLink>
                     </motion.li>
                   ))}
-                  {/* Volunteer Key Return - visible to Faculty and Student */}
-                  {(user?.role === "faculty" || user?.role === "student") && (
+                  {/* Volunteer Key Return - visible to Faculty */}
+                  {user?.role === "faculty" && (
                     <motion.li
                       key={collectiveKeyReturnItem.path}
                       initial={{ opacity: 0, x: -20 }}

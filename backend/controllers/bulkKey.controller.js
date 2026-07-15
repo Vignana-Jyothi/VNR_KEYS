@@ -54,15 +54,40 @@ export const takeBulk = asyncHandler(async (req, res) => {
     }
 
     try {
-      const key = await Key.findById(keyId);
-      if (!key) { failed.push({ keyId, reason: "Key not found" }); continue; }
-      if (!key.isActive) { failed.push({ keyId, keyNumber: key.keyNumber, reason: "Key is inactive" }); continue; }
-      if (key.status === "unavailable") {
-        failed.push({ keyId, keyNumber: key.keyNumber, keyName: key.keyName, reason: "Key is already taken" });
+      // SECURITY: Atomic checkout using findOneAndUpdate to prevent race condition
+      // Only succeeds if key exists AND status is 'available'
+      const updatedKey = await Key.findOneAndUpdate(
+        { _id: keyId, status: 'available', isActive: true },
+        {
+          $set: {
+            status: 'unavailable',
+            takenBy: {
+              userId: user._id,
+              name: user.name,
+              email: user.email
+            },
+            takenAt: new Date()
+          }
+        },
+        { new: true }
+      );
+
+      if (!updatedKey) {
+        // Key not found OR already taken (race condition or genuinely taken)
+        const keyExists = await Key.findById(keyId);
+        if (!keyExists) {
+          failed.push({ keyId, reason: "Key not found" });
+          continue;
+        }
+        if (!keyExists.isActive) {
+          failed.push({ keyId, keyNumber: keyExists.keyNumber, reason: "Key is inactive" });
+          continue;
+        }
+        failed.push({ keyId, keyNumber: keyExists.keyNumber, keyName: keyExists.keyName, reason: "Key is already taken" });
         continue;
       }
 
-      await key.takeKey(user);
+      const key = updatedKey;
 
       // Logbook
       await Logbook.create({
@@ -105,12 +130,15 @@ export const takeBulk = asyncHandler(async (req, res) => {
   // Emit bulk-complete to the faculty member so their QR modal auto-advances
   const { batchId } = req.body;
   if (batchId && succeeded.length > 0) {
+    console.log('🔵 takeBulk: Emitting bulk-complete event to faculty:', user._id.toString(), 'batchId:', batchId);
     emitBulkComplete(
       user._id.toString(),
       batchId,
       "bulk-take",
       { succeeded, failed }
     );
+  } else {
+    console.log('⚠️ takeBulk: Not emitting bulk-complete - batchId:', batchId, 'succeeded.length:', succeeded.length);
   }
 
   // Send one summary notification
@@ -230,12 +258,15 @@ export const returnBulk = asyncHandler(async (req, res) => {
   // Emit bulk-complete to the faculty member so their QR modal auto-advances
   const { batchId } = req.body;
   if (batchId && succeeded.length > 0) {
+    console.log('🔵 returnBulk: Emitting bulk-complete event to faculty:', notifUser._id.toString(), 'batchId:', batchId);
     emitBulkComplete(
       notifUser._id.toString(),
       batchId,
       "bulk-return",
       { succeeded, failed }
     );
+  } else {
+    console.log('⚠️ returnBulk: Not emitting bulk-complete - batchId:', batchId, 'succeeded.length:', succeeded.length);
   }
 
   if (succeeded.length > 0) {

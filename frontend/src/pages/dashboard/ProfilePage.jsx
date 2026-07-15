@@ -52,17 +52,17 @@ const ProfilePage = () => {
 
               <h2 className="text-xl font-bold text-white mb-1">{user?.name}</h2>
               <p className="text-gray-400 mb-1">{user?.email}</p>
-              {(user?.role === "faculty" || user?.role === "student") && (
+              {user?.role === "faculty" && (
                 <>
                   <p className="text-blue-400 font-medium mb-1">
                     {user?.department}
                   </p>
                   <p className="text-gray-500 text-sm mb-4">
-                    {user?.role === "student" ? "Student ID / Roll Number" : "Faculty ID"}: {user?.facultyId}
+                    Faculty ID: {user?.facultyId}
                   </p>
                 </>
               )}
-              {(user?.role !== "faculty" && user?.role !== "student") && <div className="mb-4"></div>}
+              {user?.role !== "faculty" && <div className="mb-4"></div>}
 
               {/* Account Info */}
               <div className="space-y-3 text-left">
@@ -108,7 +108,7 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {(user?.role === "faculty" || user?.role === "student") && (
+              {user?.role === "faculty" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <p className="text-sm font-medium text-gray-300 mb-1">Department</p>
@@ -118,7 +118,7 @@ const ProfilePage = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-300 mb-1">
-                      {user?.role === "student" ? "Student ID / Roll Number" : "Faculty ID"}
+                      Faculty ID
                     </p>
                     <p className="text-white bg-gray-800/50 p-3 rounded-lg border border-gray-700">
                       {user?.facultyId}

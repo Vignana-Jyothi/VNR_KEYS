@@ -181,7 +181,7 @@ const CompleteRegistrationPage = () => {
   }
 
   async function handleCompleteRegistration() {
-    if ((userRole === "faculty" || userRole === "student") && (!department || !facultyId.trim())) {
+    if (userRole === "faculty" && (!department || !facultyId.trim())) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -198,8 +198,8 @@ const CompleteRegistrationPage = () => {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          department: (userRole === "faculty" || userRole === "student") ? department : undefined,
-          facultyId: (userRole === "faculty" || userRole === "student") ? facultyId.trim() : undefined,
+          department: userRole === "faculty" ? department : undefined,
+          facultyId: userRole === "faculty" ? facultyId.trim() : undefined,
         }),
       });
 
@@ -320,21 +320,21 @@ const CompleteRegistrationPage = () => {
     return (
       <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="text-center">
         <h3 className="text-xl font-semibold text-white mb-2">
-          {(userRole === "faculty" || userRole === "student") ? `${userRole === "student" ? "Student" : "Faculty"} Details` : "Complete Registration"}
+          {userRole === "faculty" ? "Faculty Details" : "Complete Registration"}
         </h3>
         <p className="text-gray-300 mb-6">
-          {(userRole === "faculty" || userRole === "student")
-            ? `Please enter your ${userRole === "student" ? "student ID / Roll Number" : "faculty ID"}`
+          {userRole === "faculty"
+            ? "Please enter your faculty ID"
             : "You're all set! Click continue to complete registration."}
         </p>
 
-        {(userRole === "faculty" || userRole === "student") && (
+        {userRole === "faculty" && (
           <div className="mb-6">
             <div className="relative">
               <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder={userRole === "student" ? "Student ID / Roll Number (e.g., 23071A1234)" : "Faculty ID (e.g., 23071A1234)"}
+                placeholder="Faculty ID (e.g., 23071A1234)"
                 value={facultyId}
                 onChange={(e) => setFacultyId(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -355,7 +355,7 @@ const CompleteRegistrationPage = () => {
                 {userRole === "admin" ? "Administrator" : userRole}
               </span>
             </div>
-            {(userRole === "faculty" || userRole === "student") && (
+            {userRole === "faculty" && (
               <>
                 <div className="flex justify-between">
                   <span>Department:</span>
@@ -364,7 +364,7 @@ const CompleteRegistrationPage = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>{userRole === "student" ? "Student ID / Roll Number:" : "Faculty ID:"}</span>
+                  <span>Faculty ID:</span>
                   <span className="text-white">{facultyId || "Not entered"}</span>
                 </div>
               </>

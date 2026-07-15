@@ -52,15 +52,21 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
         break;
 
       case "batch-request":
+        console.log('🔍 QRScanner: Validating batch-request QR');
+        console.log('🔍 QRScanner: keyIds:', data.keyIds);
+        console.log('🔍 QRScanner: userId:', data.userId);
+        console.log('🔍 QRScanner: timestamp:', data.timestamp);
+        console.log('🔍 QRScanner: batchId:', data.batchId);
         if (
           !Array.isArray(data.keyIds) ||
           data.keyIds.length === 0 ||
           !data.userId ||
           !data.timestamp ||
-          !data.requestId
+          !data.batchId
         ) {
-          throw new Error("Invalid batch-request format: must include keyIds[], userId, timestamp, requestId");
+          throw new Error("Invalid batch-request format: must include keyIds[], userId, timestamp, batchId");
         }
+        console.log('✅ QRScanner: batch-request QR validation passed');
         break;
 
       default:

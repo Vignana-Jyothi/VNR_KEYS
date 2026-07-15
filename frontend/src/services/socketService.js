@@ -143,6 +143,12 @@ class SocketService {
       this.emit('userKeyUpdated', data);
     });
 
+    // Bulk complete events (for batch checkout/return)
+    this.socket.on('bulk-complete', (data) => {
+      console.log('📦 Bulk complete received:', data);
+      this.emit('bulk-complete', data);
+    });
+
     // Notification events
     this.socket.on('notification', (data) => {
       console.log('🔔 Notification received:', data);

@@ -13,18 +13,12 @@ export const processBatchQRScanReturn = async (qrData) => {
   try {
     console.log('Processing batch QR scan return:', qrData);
 
-    // Get the token from cookie or localStorage
-    const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-    
-    // Send the QR data with returnerId to the dedicated batch return endpoint
+    // Send the QR data to the dedicated batch return endpoint
+    // Backend will use req.userId (security user) as the processor
     const response = await axios.post(`${config.api.baseUrl}/qr/batch-return`, {
-      qrData: qrData,
-      returnerId: qrData.returnerId // Pass the returnerId from the security user
+      qrData: qrData
     }, {
       withCredentials: true,
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : undefined
-      }
     });
 
     return response.data;
@@ -162,7 +156,7 @@ export const validateQRData = (qrData) => {
   }
 
   // Check for batch return QR code
-  if (qrData.type === 'batch-return' && Array.isArray(qrData.keyIds)) {
+  if (qrData.type === 'batch-return' && Array.isArray(qrData.keyIds) && qrData.keyIds.length > 0 && qrData.userId && qrData.batchId) {
     console.log('✅ QR Validation: Valid batch-return QR code');
     result.isValid = true;
     result.type = 'batch-return';
@@ -170,7 +164,7 @@ export const validateQRData = (qrData) => {
   }
 
   // Check for batch request QR code (multi-key checkout)
-  if (qrData.type === 'batch-request' && Array.isArray(qrData.keyIds)) {
+  if (qrData.type === 'batch-request' && Array.isArray(qrData.keyIds) && qrData.keyIds.length > 0 && qrData.userId && qrData.batchId) {
     console.log('✅ QR Validation: Valid batch-request QR code');
     result.isValid = true;
     result.type = 'batch-request';
@@ -317,13 +311,17 @@ export const generateBatchReturnQRData = (keyIds, userId) => {
     }
   });
   const userIdStr = String(userId);
+  const batchId = `bulk-return-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+  console.log('🔵 generateBatchReturnQRData: Generated batchId:', batchId);
 
   return {
     type: 'batch-return',
     keyIds: keyIdsStr,
     userId: userIdStr,
     timestamp: new Date().toISOString(),
-    returnId: `batch-ret-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+    returnId: batchId,
+    batchId: batchId // Add batchId for socket matching
   };
 };
 

@@ -22,6 +22,7 @@ import { useKeyStore } from "../../store/keyStore";
 import { useAuthStore } from "../../store/authStore";
 import socketService from "../../services/socketService";
 import { config } from "../../utils/config";
+import { generateBatchReturnQRData } from "../../services/qrService";
 
 const Phase = {
   CONFIRM:    "confirm",
@@ -49,6 +50,20 @@ const BulkCheckoutModal = ({
   const completedRef              = useRef(false);
   const timerRef                  = useRef(null);
 
+  // ── Snapshot keys at QR-generation time ─────────────────────────────
+  // selectedKeys prop may change (store update after success) — keep a
+  // stable copy for the countdown/socket phase so the key list never empties.
+  const snapshotRef = useRef([]);
+
+  // The keys we actually display during QR/loading/result phases
+  const displayKeys = phase === Phase.CONFIRM ? (selectedKeys ?? []) : snapshotRef.current;
+  const isTake     = mode === "take";
+  const Icon       = isTake ? ArrowDownToLine : ArrowUpFromLine;
+  const accentHex  = isTake ? "#6366f1" : "#3b82f6";   // indigo / blue
+  const label      = isTake ? "Take" : "Return";
+  const mm         = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const ss_        = String(secondsLeft % 60).padStart(2, "0");
+
   // ── Reset on close ───────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) {
@@ -72,15 +87,20 @@ const BulkCheckoutModal = ({
     const MAX = config.qr.validitySeconds;
     const tick = () => {
       // If already completed via socket, don't expire
-      if (completedRef.current) return;
+      if (completedRef.current) {
+        console.log('⏰ BulkCheckoutModal: Timer tick - already completed, skipping expiry');
+        return;
+      }
       const elapsed = Math.floor((Date.now() - new Date(qrPayload.timestamp).getTime()) / 1000);
       const left    = Math.max(0, MAX - elapsed);
       setSecs(left);
       if (left <= 0) {
+        console.log('⏰ BulkCheckoutModal: Timer expired');
         setExpired(true);
         clearInterval(timerRef.current);
       }
     };
+    console.log('⏰ BulkCheckoutModal: Starting countdown timer');
     tick();
     timerRef.current = setInterval(tick, 500);
     return () => clearInterval(timerRef.current);
@@ -92,45 +112,60 @@ const BulkCheckoutModal = ({
 
     try { socketService.connect(); } catch { /* already connected */ }
 
-    const onBulkComplete = (data) => {
-      if (completedRef.current) return;
-      if (data?.batchId !== qrPayload.batchId) return;
+    console.log('🔵 BulkCheckoutModal: Setting up socket listener for batchId:', qrPayload.batchId);
 
+    const onBulkComplete = (data) => {
+      console.log('🟢 BulkCheckoutModal: Received bulk-complete event:', data);
+      console.log('🟢 BulkCheckoutModal: Expected batchId:', qrPayload.batchId, 'Received batchId:', data?.batchId);
+      
+      if (completedRef.current) {
+        console.log('⚠️ BulkCheckoutModal: Already completed, ignoring event');
+        return;
+      }
+      // Match by batchId or returnId for return operations
+      const batchIdMatch = data?.batchId === qrPayload.batchId;
+      const returnIdMatch = data?.batchId === qrPayload.returnId;
+      
+      if (!batchIdMatch && !returnIdMatch) {
+        console.log('⚠️ BulkCheckoutModal: BatchId/returnId mismatch, ignoring event');
+        return;
+      }
+
+      console.log('✅ BulkCheckoutModal: BatchId/returnId matches! Stopping timer and showing result');
       // Matches our QR — stop countdown, mark complete, show result
       completedRef.current = true;
       clearInterval(timerRef.current);
 
       setResult({ succeeded: data.succeeded ?? [], failed: data.failed ?? [] });
       setPhase(Phase.RESULT);
-      if ((data.succeeded?.length ?? 0) > 0) onSuccess?.();
+      
+      // Show success toast notification
+      const successCount = data.succeeded?.length ?? 0;
+      if (successCount > 0) {
+        const keyNumbers = data.succeeded.map(k => k.keyNumber).join(', ');
+        toast.success(
+          `${isTake ? 'Issued' : 'Returned'} ${successCount} key${successCount > 1 ? 's' : ''} successfully!\n${keyNumbers}`,
+          { duration: 4000 }
+        );
+      }
+      
+      if (successCount > 0) onSuccess?.();
     };
 
     socketService.on("bulk-complete", onBulkComplete);
     // Also catch it on the user-key-updated channel for resilience
     const onUserKeyUpdated = (data) => {
+      console.log('🟡 BulkCheckoutModal: Received userKeyUpdated event:', data);
       if (data?.batchId) onBulkComplete(data);
     };
     socketService.on("userKeyUpdated", onUserKeyUpdated);
 
     return () => {
+      console.log('🔴 BulkCheckoutModal: Cleaning up socket listeners');
       socketService.off("bulk-complete", onBulkComplete);
       socketService.off("userKeyUpdated", onUserKeyUpdated);
     };
-  }, [phase, qrPayload, onSuccess]);
-
-  // ── Snapshot keys at QR-generation time ─────────────────────────────
-  // selectedKeys prop may change (store update after success) — keep a
-  // stable copy for the countdown/socket phase so the key list never empties.
-  const snapshotRef = useRef([]);
-
-  // The keys we actually display during QR/loading/result phases
-  const displayKeys = phase === Phase.CONFIRM ? (selectedKeys ?? []) : snapshotRef.current;
-  const isTake     = mode === "take";
-  const Icon       = isTake ? ArrowDownToLine : ArrowUpFromLine;
-  const accentHex  = isTake ? "#6366f1" : "#3b82f6";   // indigo / blue
-  const label      = isTake ? "Take" : "Return";
-  const mm         = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
-  const ss_        = String(secondsLeft % 60).padStart(2, "0");
+  }, [phase, qrPayload, onSuccess, isTake]);
 
   const handleClose = () => {
     clearInterval(timerRef.current);
@@ -145,16 +180,36 @@ const BulkCheckoutModal = ({
     snapshotRef.current = [...selectedKeys];
 
     const keyIds  = snapshotRef.current.map((k) => k.id);
-    const batchId = `bulk-${mode}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const type    = isTake ? "batch-request" : "batch-return";
-    const idField = isTake
-      ? { requestId: `req-${batchId}` }
-      : { returnId:  `ret-${batchId}` };
+    let qrPayload;
+    
+    if (isTake) {
+      // For take operations, generate inline (consistent with existing flow)
+      const batchId = `bulk-take-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      qrPayload = {
+        type: "batch-request",
+        keyIds,
+        userId: user.id,
+        batchId,
+        requestId: `req-${batchId}`,
+        timestamp: new Date().toISOString()
+      };
+    } else {
+      // For return operations, use the qrService function for consistency
+      try {
+        qrPayload = generateBatchReturnQRData(keyIds, user.id);
+      } catch (error) {
+        toast.error(error.message);
+        return;
+      }
+    }
+
+    console.log('🔵 BulkCheckoutModal: Generated QR with batchId:', qrPayload.batchId);
+    console.log('🔵 BulkCheckoutModal: QR payload:', qrPayload);
 
     completedRef.current = false;
     setExpired(false);
     setSecs(config.qr.validitySeconds);
-    setQrPayload({ type, keyIds, userId: user.id, batchId, timestamp: new Date().toISOString(), ...idField });
+    setQrPayload(qrPayload);
     setPhase(Phase.QR_DISPLAY);
   };
 
@@ -168,7 +223,7 @@ const BulkCheckoutModal = ({
     clearInterval(timerRef.current);
     setPhase(Phase.LOADING);
     try {
-      const keyIds = selectedKeys.map((k) => k.id);
+      const keyIds = snapshotRef.current.map((k) => k.id);
       const data   = isTake
         ? await bulkTakeKeysAPI(keyIds)
         : await bulkReturnKeysAPI(keyIds);
@@ -251,7 +306,7 @@ const BulkCheckoutModal = ({
                       </div>
                       <div>
                         <p style={{ color:"#fff", fontWeight:700, fontSize:16, margin:0 }}>
-                          {label} {selectedKeys?.length ?? 0} Key{(selectedKeys?.length??0)>1?"s":""}
+                          {label} {displayKeys.length} Key{displayKeys.length>1?"s":""}
                         </p>
                         <p style={{ color:"#9ca3af", fontSize:12, margin:"2px 0 0" }}>Review &amp; confirm</p>
                       </div>
@@ -262,9 +317,9 @@ const BulkCheckoutModal = ({
                     </button>
                   </div>
 
-                  {/* Key list */}
+                  {/* Key list — CONFIRM phase */}
                   <div style={{ maxHeight:180, overflowY:"auto", marginBottom:16 }}>
-                    {(selectedKeys??[]).map((key) => (
+                    {displayKeys.map((key) => (
                       <div key={key.id} style={{
                         display:"flex", alignItems:"center", gap:10,
                         padding:"9px 12px", marginBottom:8,
@@ -321,7 +376,7 @@ const BulkCheckoutModal = ({
                     <div>
                       <p style={{ color:"#fff", fontWeight:700, fontSize:16, margin:0 }}>Show to Security</p>
                       <p style={{ color:"#9ca3af", fontSize:12, margin:"2px 0 0" }}>
-                        {selectedKeys?.length} key{(selectedKeys?.length??0)>1?"s":""} · one scan approves all
+                        {displayKeys.length} key{displayKeys.length>1?"s":""} · one scan approves all
                       </p>
                     </div>
                     <button onClick={handleClose}
@@ -355,7 +410,7 @@ const BulkCheckoutModal = ({
 
                   {/* Key number chips */}
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:16 }}>
-                    {(selectedKeys??[]).map((k) => (
+                    {displayKeys.map((k) => (
                       <span key={k.id} style={{
                         display:"inline-flex", alignItems:"center", gap:4, padding:"3px 10px",
                         background:"#1f2937", border:"1px solid #374151", borderRadius:999, fontSize:12, color:"#d1d5db",

@@ -151,8 +151,17 @@ router.post("/batch-return", rolePermissions.adminOrSecurity, asyncHandler(async
   }
 
   // Process returns for all keys
-  const returnedBy = await User.findById(parsedData.returnerId || parsedData.userId); // Use the faculty user's ID
-  const securityUser = await User.findById(req.userId); // Keep track of security user who processed it
+  // The security user who scanned the QR should be the processor
+  const returnedBy = await User.findById(req.userId);
+  if (!returnedBy) {
+    throw new NotFoundError("Security user not found");
+  }
+  
+  // The faculty user who originally took the keys (from QR data)
+  const facultyUser = await User.findById(parsedData.userId);
+  if (!facultyUser) {
+    throw new NotFoundError("Faculty user not found");
+  }
 
   // Store original users before returning keys
   const keyOriginalUsers = {};
@@ -261,6 +270,21 @@ router.post("/batch-return", rolePermissions.adminOrSecurity, asyncHandler(async
     await createBatchReturnNotifications(keys, returnedBy, keyOriginalUsers);
   } catch (notificationError) {
     console.error('❌ Error sending batch return notifications:', notificationError);
+  }
+
+  // Emit bulk-complete socket event to faculty so their QR modal auto-advances
+  try {
+    const { emitBulkComplete } = await import('../services/socketService.js');
+    const batchId = parsedData.batchId || parsedData.returnId; // Use batchId from QR data, fallback to returnId
+    console.log('🔵 QR batch-return: Emitting bulk-complete event to faculty:', userId, 'batchId:', batchId);
+    emitBulkComplete(
+      userId,
+      batchId,
+      'bulk-return',
+      { succeeded: returnResults, failed: [] }
+    );
+  } catch (socketError) {
+    console.error('❌ Error emitting bulk-complete socket event:', socketError);
   }
 
   res.status(200).json({

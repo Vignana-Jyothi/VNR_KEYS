@@ -20,15 +20,15 @@ if (config.auth.google.clientId && config.auth.google.clientSecret) {
       },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log("🔍 Google OAuth Profile:", profile);
+        // SECURITY: Do not log complete Google profile - only log minimal info
+        console.log("🔍 Google OAuth authentication attempt for email:", profile.emails?.[0]?.value || 'unknown');
         const googleEmail = profile.emails[0].value;
 
         // ✅ VALIDATION 1: Check if email is from @vnrvjiet.in domain
-        // COMMENTED OUT - To be applied later
-        // if (!googleEmail.endsWith('@vnrvjiet.in')) {
-        //   console.warn("❌ Invalid email domain. Email must be @vnrvjiet.in:", googleEmail);
-        //   return done(new Error('INVALID_EMAIL_DOMAIN'), null);
-        // }
+        if (!googleEmail.endsWith('@vnrvjiet.in')) {
+          console.warn("❌ Invalid email domain. Email must be @vnrvjiet.in:", googleEmail);
+          return done(new Error('INVALID_EMAIL_DOMAIN'), null);
+        }
 
         // ✅ VALIDATION 2: Check if user exists in DB with this email
         let user = await User.findOne({ email: googleEmail });
@@ -38,11 +38,15 @@ if (config.auth.google.clientId && config.auth.google.clientSecret) {
           return done(new Error('USER_NOT_IN_DATABASE'), null);
         }
 
-        // ✅ User exists - update Google account if different
+        // ✅ VALIDATION 3: Prevent Google ID hijacking - reject if different Google ID
         if (user.googleId && user.googleId !== profile.id) {
-          console.warn("⚠️ Different Google ID detected - updating:", googleEmail);
-          user.googleId = profile.id; // Update to new Google ID
-        } else if (!user.googleId) {
+          console.warn("❌ Google ID mismatch for user:", googleEmail);
+          console.warn("❌ Existing Google ID:", user.googleId, "vs new Google ID:", profile.id);
+          return done(new Error('GOOGLE_ID_MISMATCH'), null);
+        }
+
+        // ✅ VALIDATION 4: Link Google account if not already linked
+        if (!user.googleId) {
           console.log("🔗 Linking Google account to existing user:", googleEmail);
           user.googleId = profile.id;
         }
@@ -55,7 +59,7 @@ if (config.auth.google.clientId && config.auth.google.clientSecret) {
         console.log("✅ Google user authenticated:", googleEmail, "with role:", user.role);
         return done(null, user);
       } catch (error) {
-        console.error("❌ Google OAuth error:", error);
+        console.error("❌ Google OAuth error:", error.message);
         return done(error, null);
       }
     }

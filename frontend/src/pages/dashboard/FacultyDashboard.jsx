@@ -21,8 +21,8 @@ const FacultyDashboard = () => {
     const lastPart = pathParts[pathParts.length - 1];
     const validTabs = ['taken', 'keylist'];
     
-    const rolePath = user?.role === 'student' ? 'student' : 'faculty';
-    const routeKey = user?.role === 'student' ? 'lastStudentRoute' : 'lastFacultyRoute';
+    const rolePath = 'faculty';
+    const routeKey = 'lastFacultyRoute';
     
     // Check localStorage first if we're on the root path
     if (location.pathname === `/dashboard/${rolePath}`) {
@@ -71,8 +71,8 @@ const FacultyDashboard = () => {
   }, [location.pathname]);
 
   const handleTabChange = (tabId) => {
-    const rolePath = user?.role === 'student' ? 'student' : 'faculty';
-    const routeKey = user?.role === 'student' ? 'lastStudentRoute' : 'lastFacultyRoute';
+    const rolePath = 'faculty';
+    const routeKey = 'lastFacultyRoute';
     const newPath = `/dashboard/${rolePath}/${tabId}`;
     // Store the current route in localStorage
     localStorage.setItem(routeKey, newPath);
@@ -199,9 +199,39 @@ const FacultyDashboard = () => {
 
     socketService.on('userKeyUpdated', onEvent);
     socketService.on('keyUpdated', onEvent);
+
+    // Handle bulk-complete events (batch operations) so faculty QR modals
+    // auto-advance when their batchId is completed by security.
+    const onBulkComplete = (data) => {
+      try {
+        const batchId = data?.batchId;
+        if (!batchId) return;
+
+        const matchesRequest = qrData?.requestId && batchId === qrData.requestId;
+        const matchesReturn  = qrData?.returnId  && batchId === qrData.returnId;
+
+        if (matchesRequest || matchesReturn) {
+          setQrCollected(true);
+          setQrExpired(false);
+
+          // Refresh taken keys after a short delay for the UI to update
+          if (user?.id) {
+            setTimeout(() => {
+              fetchTakenKeys(user.id).catch(console.error);
+            }, 1000);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    socketService.on('bulk-complete', onBulkComplete);
+
     return () => {
       socketService.off('userKeyUpdated', onEvent);
       socketService.off('keyUpdated', onEvent);
+      socketService.off('bulk-complete', onBulkComplete);
     };
   }, [showQRModal, qrData, user?.id, fetchTakenKeys]);
 
@@ -267,7 +297,7 @@ const FacultyDashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">
-              {user?.role === "student" ? "Student Dashboard" : "Faculty Dashboard"}
+              Faculty Dashboard
             </h1>
             <p className="text-gray-300">Welcome, {user?.name}</p>
           </div>        </div>

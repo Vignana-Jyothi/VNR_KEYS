@@ -135,8 +135,8 @@ export const getMyTakenKeys = asyncHandler(async (req, res) => {
  */
 export const getAllTakenKeys = asyncHandler(async (req, res) => {
   // Verify user has permission to view all taken keys
-  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty' && req.userRole !== 'student') {
-    throw new ValidationError("Only Security, Faculty, Student, or Admin users can view all taken keys");
+  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty') {
+    throw new ValidationError("Only Security, Faculty, or Admin users can view all taken keys");
   }
 
   const keys = await Key.findUnavailable()
@@ -241,26 +241,48 @@ export const getKeyById = asyncHandler(async (req, res) => {
 });
 
 /**
- * Take a key (for faculty/admin)
+ * Take a key (for faculty/admin) - Atomic operation to prevent race condition
+ * Uses findOneAndUpdate to ensure only one checkout can succeed for the same key
  */
 export const takeKey = asyncHandler(async (req, res) => {
   const { keyId } = req.params;
-
-  const key = await Key.findById(keyId);
-  if (!key) {
-    throw new NotFoundError("Key not found");
-  }
-
-  if (key.status === 'unavailable') {
-    throw new ConflictError("Key is already taken");
-  }
 
   const user = await User.findById(req.userId);
   if (!user) {
     throw new NotFoundError("User not found");
   }
 
-  await key.takeKey(user);
+  // SECURITY: Atomic checkout using findOneAndUpdate to prevent race condition
+  // Only succeeds if key exists AND status is 'available'
+  const updatedKey = await Key.findOneAndUpdate(
+    { _id: keyId, status: 'available', isActive: true },
+    {
+      $set: {
+        status: 'unavailable',
+        takenBy: {
+          userId: user._id,
+          name: user.name,
+          email: user.email
+        },
+        takenAt: new Date()
+      }
+    },
+    { new: true } // Return the updated document
+  );
+
+  if (!updatedKey) {
+    // Key not found OR already taken (race condition or genuinely taken)
+    const keyExists = await Key.findById(keyId);
+    if (!keyExists) {
+      throw new NotFoundError("Key not found");
+    }
+    if (!keyExists.isActive) {
+      throw new ConflictError("Key is inactive");
+    }
+    throw new ConflictError("Key is already taken");
+  }
+
+  const key = updatedKey;
 
   // Log the take operation
   await AuditService.logKeyTaken(key, user, req);
@@ -323,11 +345,16 @@ export const takeKey = asyncHandler(async (req, res) => {
 });
 
 /**
- * Return a key (user who took it, or security/admin)
+ * Return a key - Authorization check to prevent unauthorized returns
+ * Admin can return any key
+ * Security can return any key
+ * Faculty and Student can only return keys currently assigned to themselves
  */
 export const returnKey = asyncHandler(async (req, res) => {
   const { keyId } = req.params;
   const { returnerId } = req.body;
+  const requestingUserId = req.userId;
+  const requestingUserRole = req.userRole;
 
   const key = await Key.findById(keyId);
   if (!key) {
@@ -338,14 +365,23 @@ export const returnKey = asyncHandler(async (req, res) => {
     throw new ConflictError("Key is already available");
   }
 
+  // Authorization check: Only admin and security can return keys for other users
+  // Faculty can only return keys assigned to themselves
+  if (requestingUserRole !== 'admin' && requestingUserRole !== 'security') {
+    // Check if the key is assigned to the requesting user
+    if (!key.takenBy?.userId || key.takenBy.userId.toString() !== requestingUserId) {
+      throw new ValidationError("Access denied: You can only return keys assigned to yourself");
+    }
+  }
+
   // Get the original user who had the key for audit logging
   const originalUser = key.takenBy?.userId ? await User.findById(key.takenBy.userId) : null;
   
   // If returnerId is provided and the current user is security/admin, use that as the returner
   // Otherwise, use the current user as the returner
-  const returnedBy = (returnerId && (req.userRole === 'admin' || req.userRole === 'security')) 
+  const returnedBy = (returnerId && (requestingUserRole === 'admin' || requestingUserRole === 'security')) 
     ? await User.findById(returnerId)
-    : await User.findById(req.userId);
+    : await User.findById(requestingUserId);
 
   await key.returnKey(returnedBy);
 
@@ -420,8 +456,14 @@ export const returnKey = asyncHandler(async (req, res) => {
     });
   }
 
-  // Emit real-time update
-  emitKeyReturned(key, req.userId);
+  // Emit real-time update - use qr-return action if this is a security/admin processing a return
+  const isQRReturn = (requestingUserRole === 'admin' || requestingUserRole === 'security') && !returnerId;
+  if (isQRReturn) {
+    const { emitQRScanReturn } = await import('../services/socketService.js');
+    emitQRScanReturn(key, req.userId, originalUser?._id?.toString());
+  } else {
+    emitKeyReturned(key, req.userId);
+  }
 
   res.status(200).json({
     success: true,
@@ -437,9 +479,9 @@ export const collectiveReturnKey = asyncHandler(async (req, res) => {
   const { keyId } = req.params;
   const { reason } = req.body;
 
-  // Verify user has permission for collective returns (Security or Faculty/Student)
-  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty' && req.userRole !== 'student') {
-    throw new ValidationError("Only Security, Faculty, Student, or Admin users can perform Volunteer Key Returns");
+  // Verify user has permission for collective returns (Security or Faculty)
+  if (req.userRole !== 'admin' && req.userRole !== 'security' && req.userRole !== 'faculty') {
+    throw new ValidationError("Only Security, Faculty, or Admin users can perform Volunteer Key Returns");
   }
 
   const key = await Key.findById(keyId);
@@ -547,8 +589,14 @@ export const collectiveReturnKey = asyncHandler(async (req, res) => {
     });
   }
 
-  // Emit real-time update
-  emitKeyReturned(key, req.userId);
+  // Emit real-time update - use qr-return action if this is a security/admin processing a return
+  const isQRReturn = (requestingUserRole === 'admin' || requestingUserRole === 'security') && !reason;
+  if (isQRReturn) {
+    const { emitQRScanReturn } = await import('../services/socketService.js');
+    emitQRScanReturn(key, req.userId, originalUser?._id?.toString());
+  } else {
+    emitKeyReturned(key, req.userId);
+  }
 
   res.status(200).json({
     success: true,
@@ -626,7 +674,8 @@ export const createKey = asyncHandler(async (req, res) => {
 });
 
 /**
- * Update a key (admin only)
+ * Update a key (admin only) - Field whitelisting to prevent mass assignment
+ * Only allows legitimate editable fields, rejects protected/security-related fields
  */
 export const updateKey = asyncHandler(async (req, res) => {
   const { keyId } = req.params;
@@ -637,15 +686,64 @@ export const updateKey = asyncHandler(async (req, res) => {
     throw new NotFoundError("Key not found");
   }
   
+  // SECURITY: Field whitelisting to prevent mass assignment attacks
+  // Only allow these legitimate editable fields
+  const allowedFields = [
+    'keyNumber',
+    'keyName',
+    'roomNumber',
+    'block',
+    'floor',
+    'description',
+    'location',
+    'category',
+    'department',
+    'frequentlyUsed'
+  ];
+  
+  // Protected fields that should never be modified through this endpoint
+  const protectedFields = [
+    'status',
+    'takenBy',
+    'takenAt',
+    'returnedAt',
+    'history',
+    'auditLogs',
+    'createdBy',
+    'createdAt',
+    'updatedAt',
+    'isActive',
+    'notifications',
+    'qrCode',
+    '_id',
+    '__v'
+  ];
+  
+  // Build sanitized updates object with only allowed fields
+  const sanitizedUpdates = {};
+  for (const field of allowedFields) {
+    if (updates[field] !== undefined) {
+      sanitizedUpdates[field] = updates[field];
+    }
+  }
+  
+  // Log if any protected fields were attempted to be modified
+  const attemptedProtectedFields = protectedFields.filter(field => updates[field] !== undefined);
+  if (attemptedProtectedFields.length > 0) {
+    console.warn('⚠️ SECURITY: Attempted to modify protected fields:', attemptedProtectedFields);
+    // Do not throw error - just ignore these fields to maintain API compatibility
+  }
+  
   // If updating key number, check for duplicates (only check active keys)
-  if (updates.keyNumber && updates.keyNumber !== key.keyNumber) {
-    const existingKey = await Key.findOne({ keyNumber: updates.keyNumber, isActive: true });
+  if (sanitizedUpdates.keyNumber && sanitizedUpdates.keyNumber !== key.keyNumber) {
+    const existingKey = await Key.findOne({ keyNumber: sanitizedUpdates.keyNumber, isActive: true });
     if (existingKey) {
       throw new ConflictError("Key number already exists");
     }
   }
   
-  Object.assign(key, updates);
+  // Apply only sanitized updates
+  Object.assign(key, sanitizedUpdates);
   await key.save();
   
   res.status(200).json({
@@ -831,11 +929,12 @@ export const qrScanReturn = asyncHandler(async (req, res) => {
   }
   console.log('✅ Original user found:', originalUser.name, originalUser.email);
 
-  // Get the user performing the return (from QR code's returnId)
-  console.log('🔍 Looking up returning user with ID:', returnId);
-  const returnedBy = await User.findById(returnId);
+  // Get the user performing the return (the security/admin who scanned the QR)
+  // returnId is a transaction identifier, not a user ID - use req.userId for the processor
+  console.log('🔍 Looking up returning user (scanner) with ID:', req.userId);
+  const returnedBy = await User.findById(req.userId);
   if (!returnedBy) {
-    console.log('❌ Returning user not found with ID:', returnId);
+    console.log('❌ Returning user not found with ID:', req.userId);
     throw new NotFoundError("Returning user not found");
   }
   console.log('✅ Returning user found:', returnedBy.name);
@@ -935,7 +1034,7 @@ export const qrScanReturn = asyncHandler(async (req, res) => {
 });
 
 /**
- * Handle QR code scan for key request (security/admin only)
+ * Handle QR code scan for key request (security/admin only) - Atomic operation to prevent race condition
  */
 export const qrScanRequest = asyncHandler(async (req, res) => {
   const { qrData } = req.body;
@@ -967,25 +1066,43 @@ export const qrScanRequest = asyncHandler(async (req, res) => {
     throw new ValidationError("Invalid user ID format");
   }
 
-  // Find the key
-  const key = await Key.findById(keyId);
-  if (!key) {
-    throw new NotFoundError("Key not found");
-  }
-
-  // Verify the key is available
-  if (key.status === 'unavailable') {
-    throw new ConflictError("Key is already taken");
-  }
-
   // Get the user who requested the key
   const requestingUser = await User.findById(userId);
   if (!requestingUser) {
     throw new NotFoundError("Requesting user not found");
   }
 
-  // Take the key for the requesting user
-  await key.takeKey(requestingUser);
+  // SECURITY: Atomic checkout using findOneAndUpdate to prevent race condition
+  // Only succeeds if key exists AND status is 'available'
+  const updatedKey = await Key.findOneAndUpdate(
+    { _id: keyId, status: 'available', isActive: true },
+    {
+      $set: {
+        status: 'unavailable',
+        takenBy: {
+          userId: requestingUser._id,
+          name: requestingUser.name,
+          email: requestingUser.email
+        },
+        takenAt: new Date()
+      }
+    },
+    { new: true }
+  );
+
+  if (!updatedKey) {
+    // Key not found OR already taken (race condition or genuinely taken)
+    const keyExists = await Key.findById(keyId);
+    if (!keyExists) {
+      throw new NotFoundError("Key not found");
+    }
+    if (!keyExists.isActive) {
+      throw new ConflictError("Key is inactive");
+    }
+    throw new ConflictError("Key is already taken");
+  }
+
+  const key = updatedKey;
 
   // Create a detailed logbook entry for QR-based key request
   await Logbook.create({

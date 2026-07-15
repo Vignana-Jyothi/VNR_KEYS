@@ -33,37 +33,35 @@ export const completeRegistration = asyncHandler(async (req, res) => {
 		role = 'security';
 	} else if (user.email === '23071a7228@vnrvjiet.in') {
 		role = 'admin';
-	} else if (/^\d/.test(user.email)) {
-		role = 'student';
 	} else {
 		role = 'faculty';
 	}
 
-	// Validate faculty/student-specific fields
-	if (role === 'faculty' || role === 'student') {
+	// Validate faculty-specific fields
+	if (role === 'faculty') {
 		if (!department || !['CSE', 'EEE', 'CSE-AIML', 'CSE_AIDS', 'IoT', 'ECE', 'MECH', 'CIVIL', 'IT', 'CSE-AIML&IOT', 'CSE-(CyS,DS)_and_AI&DS', 'Director', 'GRO', 'HR', 'Humanity and sciences(H&S)', 'IQAC', 'IT', 'Other', 'PAAC', 'Placement', 'Principal', 'Purchase', 'RCC', 'SSC', 'VJ_Hub'].includes(department)) {
 			throw new ValidationError(`Valid department is required for ${role}`);
 		}
 		if (!facultyId || facultyId.trim().length === 0) {
-			throw new ValidationError(`${role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} is required`);
+			throw new ValidationError(`Faculty ID is required`);
 		}
 
 		// Check if ID already exists
 		const existingUser = await User.findOne({ facultyId: facultyId.trim() });
 		if (existingUser && existingUser._id.toString() !== userId) {
-			throw new ConflictError(`${role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} already exists`);
+			throw new ConflictError(`Faculty ID already exists`);
 		}
 	}
 
 	// Check if user already completed registration
-	if (user.role !== 'pending' && !((user.role === 'faculty' || user.role === 'student') && (!user.department || !user.facultyId))) {
+	if (user.role !== 'pending' && !(user.role === 'faculty' && (!user.department || !user.facultyId))) {
 		throw new ConflictError('User registration already completed');
 	}
 
 	// Update user with registration details
 	user.role = role;
 	user.isVerified = true;
-	if (role === 'faculty' || role === 'student') {
+	if (role === 'faculty') {
 		user.department = department;
 		user.facultyId = facultyId.trim();
 	}
@@ -122,13 +120,27 @@ export const checkAuth = asyncHandler(async (req, res) => {
 	});
 });
 
-// Get user by ID
+// Get user by ID - Authorization check to prevent IDOR vulnerability
+// Admin can access any user profile
+// Security can access users if required by application
+// Faculty can only access their own profile
 export const getUserById = asyncHandler(async (req, res) => {
 	const { userId } = req.params;
+	const requestingUserId = req.userId;
+	const requestingUserRole = req.userRole;
 
 	// Validate ObjectId
 	if (!mongoose.Types.ObjectId.isValid(userId)) {
 		throw new ValidationError("Invalid user ID format");
+	}
+
+	// Authorization check: Prevent IDOR vulnerability
+	// Only admin and security can access other users' profiles
+	// Faculty can only access their own profile
+	if (requestingUserRole !== 'admin' && requestingUserRole !== 'security') {
+		if (userId !== requestingUserId) {
+			throw new ValidationError("Access denied: You can only view your own profile");
+		}
 	}
 
 	const user = await User.findById(userId).select("-__v");
@@ -181,7 +193,7 @@ export const checkRegistrationStatus = asyncHandler(async (req, res) => {
 	}
 
 	// Check if user needs to complete registration
-	const needsRegistration = user.role === 'pending' || ((user.role === 'faculty' || user.role === 'student') && (!user.department || !user.facultyId));
+	const needsRegistration = user.role === 'pending' || (user.role === 'faculty' && (!user.department || !user.facultyId));
 
 	res.status(200).json({
 		success: true,
@@ -227,8 +239,8 @@ export const updateProfile = asyncHandler(async (req, res) => {
 		throw new ValidationError('Invalid name format');
 	}
 
-	// Validate faculty/student-specific fields if user is faculty or student
-	if (user.role === 'faculty' || user.role === 'student') {
+	// Validate faculty-specific fields if user is faculty
+	if (user.role === 'faculty') {
 		if (department && !['CSE', 'CSE-AIML', 'CSE-DS', 'EEE', 'CSE_AIDS', 'IoT', 'ECE', 'MECH', 'CIVIL', 'IT', 'CSE-AIML&IOT', 'CSE-(CyS,DS)_and_AI&DS', 'Director', 'GRO', 'HR', 'Humanity and sciences(H&S)', 'IQAC', 'Other', 'PAAC', 'Placement', 'Principal', 'Purchase', 'RCC', 'SSC', 'VJ_Hub'].includes(department)) {
 			throw new ValidationError(`Invalid department for ${user.role}`);
 		}
@@ -237,7 +249,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
 			// Check if ID already exists
 			const existingUser = await User.findOne({ facultyId: facultyId.trim() });
 			if (existingUser && existingUser._id.toString() !== userId) {
-				throw new ConflictError(`${user.role === 'student' ? 'Student ID / Roll Number' : 'Faculty ID'} already exists`);
+				throw new ConflictError(`Faculty ID already exists`);
 			}
 		}
 	}
@@ -245,7 +257,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
 	// Update user fields
 	if (name) user.name = name.trim();
 	if (email) user.email = sanitizeEmail(email);
-	if (user.role === 'faculty' || user.role === 'student') {
+	if (user.role === 'faculty') {
 		if (department) user.department = department;
 		if (facultyId) user.facultyId = facultyId.trim();
 	}

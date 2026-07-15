@@ -22,6 +22,12 @@ export const {
   EMAIL_FROM_NAME
 } = process.env;
 
+// TODO: SECURITY - Rotate JWT_SECRET after deployment
+// The current JWT_SECRET should be replaced with a strong, randomly generated secret
+// Generate a new secret using: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+// Update the .env file with the new secret and restart the server
+// This should be done immediately after first deployment and periodically thereafter
+
 // Validate required environment variables
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
