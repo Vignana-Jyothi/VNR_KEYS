@@ -128,8 +128,66 @@ const useNotificationStore = create(
         }
       },
 
+      // Archive a notification
+      archiveNotification: async (notificationId) => {
+        const { notifications, setNotifications } = get();
+        
+        try {
+          await axios.patch(`${API_BASE_URL}/notifications/${notificationId}/archive`);
 
-      // Add new notification (for real-time updates)
+          // Remove from inbox
+          const updatedNotifications = notifications.filter(n => n._id !== notificationId);
+          setNotifications(updatedNotifications);
+        } catch (error) {
+          console.error('Error archiving notification:', error);
+          throw error;
+        }
+      },
+
+      // Unarchive a notification
+      unarchiveNotification: async (notificationId) => {
+        try {
+          await axios.patch(`${API_BASE_URL}/notifications/${notificationId}/unarchive`);
+        } catch (error) {
+          console.error('Error unarchiving notification:', error);
+          throw error;
+        }
+      },
+
+      // Permanently delete a notification
+      deleteNotification: async (notificationId) => {
+        try {
+          await axios.delete(`${API_BASE_URL}/notifications/${notificationId}`);
+        } catch (error) {
+          console.error('Error deleting notification:', error);
+          throw error;
+        }
+      },
+
+      // Fetch notification history
+      fetchNotificationHistory: async (type = null, limit = 50) => {
+        const { setLoading, setError } = get();
+
+        try {
+          setLoading(true);
+          setError(null);
+
+          const params = new URLSearchParams();
+          params.append('limit', limit);
+          if (type) params.append('type', type);
+
+          const response = await axios.get(`${API_BASE_URL}/notifications/history/list?${params}`);
+          const notifications = response.data.data?.notifications || [];
+          
+          return notifications;
+        } catch (error) {
+          console.error('Error fetching notification history:', error);
+          setError(error.response?.data?.message || error.message);
+          throw error;
+        } finally {
+          setLoading(false);
+        }
+      },
       addNotification: (notification) => {
         const { notifications, setNotifications } = get();
         const updatedNotifications = [notification, ...notifications];
@@ -191,9 +249,10 @@ const useNotificationStore = create(
               title: notificationData.title,
               message: notificationData.message,
               createdAt: notificationData.createdAt,
-              read: notificationData.read || false,
+              read: notificationData.read ?? notificationData.isRead ?? false,
               type: notificationData.type || 'general',
-              priority: notificationData.priority || 'medium'
+              priority: notificationData.priority || 'medium',
+              metadata: notificationData.metadata || {}
             };
             
             addNotification(notification);

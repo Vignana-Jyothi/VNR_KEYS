@@ -73,6 +73,16 @@ const notificationSchema = new mongoose.Schema(
       default: true,
     },
 
+    archived: {
+      type: Boolean,
+      default: false,
+    },
+
+    archivedAt: {
+      type: Date,
+      default: null,
+    },
+
     // Auto-delete after 7 days
     expiresAt: {
       type: Date,
@@ -96,6 +106,7 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ "recipient.userId": 1, createdAt: -1 });
 notificationSchema.index({ "recipient.role": 1 });
 notificationSchema.index({ read: 1 });
+notificationSchema.index({ archived: 1 });
 notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Instance methods
@@ -111,12 +122,25 @@ notificationSchema.methods.markAsUnread = function () {
   return this.save();
 };
 
+notificationSchema.methods.archive = function () {
+  this.archived = true;
+  this.archivedAt = new Date();
+  return this.save();
+};
+
+notificationSchema.methods.unarchive = function () {
+  this.archived = false;
+  this.archivedAt = null;
+  return this.save();
+};
+
 // Static methods
 notificationSchema.statics.findUnreadForUser = function (userId) {
   return this.find({
     "recipient.userId": userId,
     read: false,
     isActive: true,
+    archived: false,
   }).sort({ createdAt: -1 });
 };
 
@@ -124,6 +148,7 @@ notificationSchema.statics.findForUser = function (userId, options = {}) {
   const query = {
     "recipient.userId": userId,
     isActive: true,
+    archived: false,  // Exclude archived notifications (Inbox only)
   };
 
   if (options.read !== undefined) {
@@ -135,11 +160,32 @@ notificationSchema.statics.findForUser = function (userId, options = {}) {
     .limit(options.limit || 50);
 };
 
+notificationSchema.statics.findArchivedForUser = function (userId, options = {}) {
+  const query = {
+    "recipient.userId": userId,
+    isActive: true,
+    $or: [{ archived: true }, { read: true }],  // Show archived OR read notifications
+  };
+
+  if (options.type) {
+    query.type = options.type;
+  }
+
+  let queryBuilder = this.find(query).sort({ createdAt: -1 });
+
+  if (options.limit) {
+    queryBuilder = queryBuilder.limit(options.limit);
+  }
+
+  return queryBuilder;
+};
+
 notificationSchema.statics.countUnreadForUser = function (userId) {
   return this.countDocuments({
     "recipient.userId": userId,
     read: false,
     isActive: true,
+    archived: false,
   });
 };
 

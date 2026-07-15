@@ -11,8 +11,9 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
+  Archive,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useAuthStore } from '../../store/authStore';
 import { formatDistanceToNow } from 'date-fns';
@@ -55,6 +56,7 @@ const getLeftBorderColor = (notification) => {
 };
 
 const NotificationsPage = () => {
+  const navigate = useNavigate();
   const {
     notifications,
     loading,
@@ -62,6 +64,7 @@ const NotificationsPage = () => {
     fetchNotifications,
     markAsRead,
     markAsUnread,
+    archiveNotification,
   } = useNotificationStore();
 
   const { user } = useAuthStore();
@@ -104,7 +107,10 @@ const NotificationsPage = () => {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2 md:gap-3">
               <Bell className="h-6 w-6 md:h-7 md:w-7 text-blue-400 flex-shrink-0" />
-              <h1 className="text-xl md:text-2xl font-bold text-white">Notifications</h1>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-white">Inbox</h1>
+                <p className="text-xs text-gray-400">Active notifications</p>
+              </div>
               {notifications.filter(n => !n.read).length > 0 && (
                 <span className="bg-blue-600 text-white text-xs font-bold rounded-full px-2 py-0.5">
                   {notifications.filter(n => !n.read).length} unread
@@ -112,6 +118,14 @@ const NotificationsPage = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/dashboard/notifications/history')}
+                className="px-3 py-2 min-h-[44px] flex items-center justify-center bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 hover:text-orange-200 rounded-lg transition-colors text-sm font-medium gap-1 border border-orange-600/30"
+                title="View notification history"
+              >
+                <Archive className="h-4 w-4" />
+                <span className="hidden sm:inline">History</span>
+              </button>
               {(user?.role === 'security' || user?.role === 'admin') && (
                 <NotificationResendButton />
               )}
@@ -126,7 +140,7 @@ const NotificationsPage = () => {
             </div>
           </div>
           <p className="text-gray-400 text-xs md:text-sm mt-1">
-            {notifications.length} notification{notifications.length !== 1 ? 's' : ''} total
+            {notifications.length} notification{notifications.length !== 1 ? 's' : ''} in your inbox
           </p>
         </div>
 
@@ -214,21 +228,33 @@ const NotificationsPage = () => {
                               )}
                             </div>
 
-                            {/* Read / Unread toggle */}
-                            <button
-                              className="p-1 text-gray-500 hover:text-gray-300 transition-colors"
-                              title={notification.read ? 'Mark as unread' : 'Mark as read'}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                notification.read
-                                  ? markAsUnread(notification._id)
-                                  : markAsRead(notification._id);
-                              }}
-                            >
-                              {notification.read
-                                ? <EyeOff className="h-4 w-4" />
-                                : <Eye className="h-4 w-4" />}
-                            </button>
+                            {/* Read / Unread toggle + Archive */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                className="p-1 text-gray-500 hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-700/50"
+                                title={notification.read ? 'Mark as unread' : 'Mark as read'}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  notification.read
+                                    ? markAsUnread(notification._id)
+                                    : markAsRead(notification._id);
+                                }}
+                              >
+                                {notification.read
+                                  ? <EyeOff className="h-4 w-4" />
+                                  : <Eye className="h-4 w-4" />}
+                              </button>
+                              <button
+                                className="p-1 text-gray-500 hover:text-orange-400 transition-colors rounded-lg hover:bg-gray-700/50"
+                                title="Archive notification"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  archiveNotification(notification._id);
+                                }}
+                              >
+                                <Archive className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

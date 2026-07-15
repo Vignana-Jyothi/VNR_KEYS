@@ -31,7 +31,7 @@ import { formatNotificationMessage, formatEmailContent } from "./notificationFor
 
 // ── helpers ───────────────────────────────────────────────────────────────
 
-const IST = (d = new Date()) =>
+export const IST = (d = new Date()) =>
   d.toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
     day:      "2-digit",
@@ -50,7 +50,7 @@ function buildMessage(ctx, recipientRole) {
 /** Build the structured metadata payload stored on every notification */
 function buildMetadata(ctx) {
   const { eventType, isBulk, faculty, keys, processor } = ctx;
-  return {
+  const metadata = {
     eventType,
     isBulk,
     facultyId:       faculty._id?.toString(),
@@ -65,6 +65,12 @@ function buildMetadata(ctx) {
     timestamp:       new Date().toISOString(),
     status:          "completed",
   };
+  // For single-key transactions, add keyNumber/keyName at top level for UI display
+  if (keys.length === 1) {
+    metadata.keyNumber = keys[0].keyNumber;
+    metadata.keyName = keys[0].keyName;
+  }
+  return metadata;
 }
 
 /** Safe wrapper — errors don't crash the main transaction */
@@ -108,7 +114,7 @@ export const notifyKeyTransaction = async (ctx) => {
   const type     = isCheckout ? "key_taken" : "key_returned";
 
   // Context for formatter
-  const ctx = {
+  const notificationContext = {
     eventType,
     faculty,
     keys,
@@ -119,7 +125,7 @@ export const notifyKeyTransaction = async (ctx) => {
 
   // ── 1. FACULTY notification + email ─────────────────────────────────
   await safely("faculty-db", async () => {
-    const { title, message } = formatNotificationMessage(ctx, "faculty");
+    const { title, message } = formatNotificationMessage(notificationContext, "faculty");
     const notif = await createNotification({
       recipient: {
         userId: faculty._id,
@@ -149,7 +155,7 @@ export const notifyKeyTransaction = async (ctx) => {
   });
 
   await safely("faculty-email", async () => {
-    const { subject, html } = formatEmailContent(ctx, "faculty");
+    const { subject, html } = formatEmailContent(notificationContext, "faculty");
     await sendKeyTransactionEmail(faculty.email, faculty.name, {
       eventType,
       facultyName:     faculty.name,
@@ -159,16 +165,15 @@ export const notifyKeyTransaction = async (ctx) => {
       processedBy:     procDisplayName,
       processedByRole: procDisplayRole,
       recipientRole:   "faculty",
+      currentUserId:   processor?._id?.toString() || null,
     });
   });
 
   // ── 2. SECURITY notifications + emails ──────────────────────────────
-  // If a security officer processed the transaction, notify only that officer
-  // If faculty took the key themselves (processor is null), notify all security users for awareness
-  if (processor && processor.role === "security") {
-    // Notify only the specific security officer who processed it
+  // Only notify the specific security officer who completed the transaction.
+  if (processor?.role === "security") {
     await safely("security-db", async () => {
-      const { title, message } = formatNotificationMessage(ctx, "security");
+      const { title, message } = formatNotificationMessage(notificationContext, "security");
       const notif = await createNotification({
         recipient: { userId: processor._id, name: processor.name, email: processor.email, role: processor.role },
         title,
@@ -187,7 +192,7 @@ export const notifyKeyTransaction = async (ctx) => {
     });
 
     await safely("security-email", async () => {
-      const { subject, html } = formatEmailContent(ctx, "security");
+      const { subject, html } = formatEmailContent(notificationContext, "security");
       await sendKeyTransactionEmail(processor.email, processor.name, {
         eventType,
         facultyName:     faculty.name,
@@ -197,45 +202,9 @@ export const notifyKeyTransaction = async (ctx) => {
         processedBy:     procDisplayName,
         processedByRole: procDisplayRole,
         recipientRole:   "security",
+        currentUserId:   processor?._id?.toString() || null,
       });
     });
-  } else if (!processor) {
-    // Faculty took the key themselves - notify all security users for awareness
-    const securityUsers = await User.find({ role: "security", isVerified: true }).lean();
-    for (const su of securityUsers) {
-      await safely(`security-db-${su._id}`, async () => {
-        const { title, message } = formatNotificationMessage(ctx, "security");
-        const notif = await createNotification({
-          recipient: { userId: su._id, name: su.name, email: su.email, role: su.role },
-          title,
-          message,
-          type,
-          priority: "low",
-          metadata,
-        });
-        emitNotificationToRole("security", notif);
-        if (global.io) global.io.to(`user-${su._id}`).emit("notification", {
-          id: notif._id, type: notif.type, title: notif.title,
-          message: notif.message, priority: notif.priority,
-          metadata: notif.metadata, createdAt: notif.createdAt,
-          isRead: false, timestamp: new Date().toISOString(),
-        });
-      });
-
-      await safely(`security-email-${su._id}`, async () => {
-        const { subject, html } = formatEmailContent(ctx, "security");
-        await sendKeyTransactionEmail(su.email, su.name, {
-          eventType,
-          facultyName:     faculty.name,
-          facultyId:       facId,
-          department:      dept,
-          keys,
-          processedBy:     procDisplayName,
-          processedByRole: procDisplayRole,
-          recipientRole:   "security",
-        });
-      });
-    }
   }
 
   // ── 3. ADMIN notifications + emails ──────────────────────────────────
@@ -243,7 +212,7 @@ export const notifyKeyTransaction = async (ctx) => {
 
   for (const au of adminUsers) {
     await safely(`admin-db-${au._id}`, async () => {
-      const { title, message } = formatNotificationMessage(ctx, "admin");
+      const { title, message } = formatNotificationMessage(notificationContext, "admin");
       const notif = await createNotification({
         recipient: { userId: au._id, name: au.name, email: au.email, role: au.role },
         title,
@@ -262,7 +231,7 @@ export const notifyKeyTransaction = async (ctx) => {
     });
 
     await safely(`admin-email-${au._id}`, async () => {
-      const { subject, html } = formatEmailContent(ctx, "admin");
+      const { subject, html } = formatEmailContent(notificationContext, "admin");
       await sendKeyTransactionEmail(au.email, au.name, {
         eventType,
         facultyName:     faculty.name,
@@ -272,11 +241,11 @@ export const notifyKeyTransaction = async (ctx) => {
         processedBy:     procDisplayName,
         processedByRole: procDisplayRole,
         recipientRole:   "admin",
+        currentUserId:   processor?._id?.toString() || null,
       });
     });
   }
 
-  const securityCount = processor && processor.role === 'security' ? 1 : 
-                         (!processor ? (await User.find({ role: 'security', isVerified: true }).lean()).length : 0);
+  const securityCount = processor?.role === 'security' ? 1 : 0;
   console.log(`✅ keyNotificationService: ${eventType} · ${count} key(s) · faculty:${faculty.name} · notified security(${securityCount}) admin(${adminUsers.length})`);
 };

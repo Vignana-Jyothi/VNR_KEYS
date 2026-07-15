@@ -22,6 +22,7 @@ import CollectiveKeyReturnPage from "./pages/dashboard/CollectiveKeyReturnPage";
 import ProfilePage from "./pages/dashboard/ProfilePage";
 import AboutPage from "./pages/dashboard/AboutPage";
 import NotificationsPage from "./pages/dashboard/NotificationsPage";
+import NotificationHistoryPage from "./pages/dashboard/NotificationHistoryPage";
 import ManageUsersPage from "./pages/admin/ManageUsersPage";
 import ManageApiKeysPage from "./pages/admin/ManageApiKeysPage";
 import SecuritySettingsPage from "./pages/admin/SecuritySettingsPage";
@@ -223,6 +224,7 @@ function App() {
 					<Route path='profile' element={<ProfilePage />} />
 					<Route path='about' element={<AboutPage />} />
 					<Route path='notifications' element={<NotificationsPage />} />
+					<Route path='notifications/history' element={<NotificationHistoryPage />} />
 				</Route>
 
 				{/* Root route - redirect to role-based dashboard */}

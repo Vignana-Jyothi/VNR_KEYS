@@ -61,35 +61,69 @@ const NotificationContent = ({ notification, compact = false }) => {
 
   // ── Key Taken ──────────────────────────────────────────────────────────────
   if (type === 'key_taken') {
+    const isBatch = metadata?.keys && metadata.keys.length > 1;
+    const keys = isBatch ? metadata.keys : (metadata?.keyNumber ? [{ keyNumber: metadata.keyNumber, keyName: metadata.keyName }] : []);
+    
     return (
       <div className="space-y-2 mt-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-400 text-xs font-semibold px-2 py-0.5 rounded-full">
-            🔑 Key Taken
+            🔑 {isBatch ? `${metadata.totalKeys} Keys Taken` : 'Key Taken'}
           </span>
-          {(metadata?.keyNumber || metadata?.keyName) && (
-            <span className="text-white text-xs font-semibold">
-              {metadata?.keyNumber}
-              {metadata?.keyName && metadata?.keyName !== metadata?.keyNumber && (
-                <span className="text-gray-400 font-normal ml-1">({metadata.keyName})</span>
-              )}
-            </span>
-          )}
         </div>
+        
+        {/* Display keys */}
+        {keys.length > 0 && (
+          <div className="rounded-lg overflow-hidden border border-white/10 text-xs bg-white/5">
+            {/* Single key - inline display */}
+            {!isBatch && keys[0] && (
+              <div className="px-3 py-2 text-gray-200 font-medium">
+                <span className="text-blue-400">{keys[0].keyNumber}</span>
+                {keys[0].keyName && keys[0].keyName !== keys[0].keyNumber && (
+                  <span className="text-gray-400 ml-2">({keys[0].keyName})</span>
+                )}
+              </div>
+            )}
+            
+            {/* Batch keys - table display */}
+            {isBatch && (
+              <>
+                <div className="grid grid-cols-2 gap-2 px-3 py-1.5 bg-white/5 text-gray-400 font-medium uppercase tracking-wide border-b border-white/10">
+                  <span>Key #</span>
+                  <span>Name</span>
+                </div>
+                {keys.slice(0, 5).map((key, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2 px-3 py-1.5 border-t border-white/10 hover:bg-white/3">
+                    <span className="text-blue-400 font-medium">{key.keyNumber}</span>
+                    <span className="text-gray-300 truncate">{key.keyName || 'N/A'}</span>
+                  </div>
+                ))}
+                {keys.length > 5 && (
+                  <div className="px-3 py-1.5 border-t border-white/10 text-gray-500 text-xs">
+                    +{keys.length - 5} more keys
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        
+        {/* Faculty and department info */}
         {metadata?.facultyName && (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <div className="grid gap-y-1 text-xs">
             <div>
               <p className="text-gray-500 uppercase tracking-wide">Taken By</p>
               <p className="text-gray-200 font-medium mt-0.5">{metadata.facultyName}</p>
             </div>
-            {metadata?.keyName && (
+            {metadata?.department && metadata.department !== 'N/A' && (
               <div>
-                <p className="text-gray-500 uppercase tracking-wide">Key</p>
-                <p className="text-gray-200 font-medium mt-0.5">{metadata.keyName}</p>
+                <p className="text-gray-500 uppercase tracking-wide">Department</p>
+                <p className="text-gray-200 font-medium mt-0.5">{metadata.department}</p>
               </div>
             )}
           </div>
         )}
+        
         {!metadata?.facultyName && (
           <p className="text-gray-300 text-xs leading-relaxed">{message}</p>
         )}
@@ -99,22 +133,56 @@ const NotificationContent = ({ notification, compact = false }) => {
 
   // ── Key Returned ───────────────────────────────────────────────────────────
   if (type === 'key_returned' || title === 'Key Returned') {
+    const isBatch = metadata?.keys && metadata.keys.length > 1;
+    const keys = isBatch ? metadata.keys : (metadata?.keyNumber ? [{ keyNumber: metadata.keyNumber, keyName: metadata.keyName }] : []);
+    
     return (
       <div className="space-y-2 mt-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1 bg-green-500/15 text-green-400 text-xs font-semibold px-2 py-0.5 rounded-full">
-            ✅ Key Returned
+            ✅ {isBatch ? `${metadata.totalKeys} Keys Returned` : 'Key Returned'}
           </span>
-          {(metadata?.keyNumber || metadata?.keyName) && (
-            <span className="text-white text-xs font-semibold">
-              {metadata?.keyNumber}
-              {metadata?.keyName && metadata?.keyName !== metadata?.keyNumber && (
-                <span className="text-gray-400 font-normal ml-1">({metadata.keyName})</span>
-              )}
-            </span>
-          )}
         </div>
-        <p className="text-gray-300 text-xs leading-relaxed">{message}</p>
+        
+        {/* Display keys */}
+        {keys.length > 0 && (
+          <div className="rounded-lg overflow-hidden border border-white/10 text-xs bg-white/5">
+            {/* Single key - inline display */}
+            {!isBatch && keys[0] && (
+              <div className="px-3 py-2 text-gray-200 font-medium">
+                <span className="text-green-400">{keys[0].keyNumber}</span>
+                {keys[0].keyName && keys[0].keyName !== keys[0].keyNumber && (
+                  <span className="text-gray-400 ml-2">({keys[0].keyName})</span>
+                )}
+              </div>
+            )}
+            
+            {/* Batch keys - table display */}
+            {isBatch && (
+              <>
+                <div className="grid grid-cols-2 gap-2 px-3 py-1.5 bg-white/5 text-gray-400 font-medium uppercase tracking-wide border-b border-white/10">
+                  <span>Key #</span>
+                  <span>Name</span>
+                </div>
+                {keys.slice(0, 5).map((key, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2 px-3 py-1.5 border-t border-white/10 hover:bg-white/3">
+                    <span className="text-green-400 font-medium">{key.keyNumber}</span>
+                    <span className="text-gray-300 truncate">{key.keyName || 'N/A'}</span>
+                  </div>
+                ))}
+                {keys.length > 5 && (
+                  <div className="px-3 py-1.5 border-t border-white/10 text-gray-500 text-xs">
+                    +{keys.length - 5} more keys
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        
+        {!keys.length && (
+          <p className="text-gray-300 text-xs leading-relaxed">{message}</p>
+        )}
       </div>
     );
   }

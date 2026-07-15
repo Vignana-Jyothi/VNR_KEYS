@@ -170,6 +170,7 @@ export const sendKeyTransactionEmail = async (toEmail, recipientName, data) => {
 		processedBy,
 		processedByRole = "",
 		recipientRole   = "faculty",
+		currentUserId   = null,
 	} = data;
 
 	// Import the formatter dynamically to avoid circular dependencies
@@ -184,8 +185,9 @@ export const sendKeyTransactionEmail = async (toEmail, recipientName, data) => {
 			department,
 		},
 		keys,
-		processor: processedBy ? { name: processedBy } : null,
+		processor: processedBy ? { name: processedBy, role: processedByRole || null } : null,
 		processorRole: processedByRole,
+		currentUserId,
 	};
 
 	// Get formatted email content from the unified formatter

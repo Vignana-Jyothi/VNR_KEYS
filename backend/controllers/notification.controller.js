@@ -274,3 +274,112 @@ export const getNotificationById = asyncHandler(async (req, res) => {
     data: { notification }
   });
 });
+
+/**
+ * Get archived and read notifications (Notification History)
+ */
+export const getNotificationHistory = asyncHandler(async (req, res) => {
+  const userId = req.userId;
+  const { type, limit = 50 } = req.query;
+
+  const options = { limit: parseInt(limit) };
+  if (type) options.type = type;
+
+  const notifications = await Notification.findArchivedForUser(userId, options);
+
+  res.status(200).json({
+    success: true,
+    message: "Notification history retrieved successfully",
+    data: { notifications }
+  });
+});
+
+/**
+ * Archive a notification
+ */
+export const archiveNotification = asyncHandler(async (req, res) => {
+  const { notificationId } = req.params;
+  const userId = req.userId;
+
+  if (!notificationId) {
+    throw new ValidationError("Notification ID is required");
+  }
+
+  const notification = await Notification.findOne({
+    _id: notificationId,
+    'recipient.userId': userId,
+    isActive: true
+  });
+
+  if (!notification) {
+    throw new NotFoundError("Notification not found");
+  }
+
+  await notification.archive();
+
+  res.status(200).json({
+    success: true,
+    message: "Notification archived successfully",
+    data: { notification }
+  });
+});
+
+/**
+ * Unarchive a notification
+ */
+export const unarchiveNotification = asyncHandler(async (req, res) => {
+  const { notificationId } = req.params;
+  const userId = req.userId;
+
+  if (!notificationId) {
+    throw new ValidationError("Notification ID is required");
+  }
+
+  const notification = await Notification.findOne({
+    _id: notificationId,
+    'recipient.userId': userId,
+    isActive: true
+  });
+
+  if (!notification) {
+    throw new NotFoundError("Notification not found");
+  }
+
+  await notification.unarchive();
+
+  res.status(200).json({
+    success: true,
+    message: "Notification unarchived successfully",
+    data: { notification }
+  });
+});
+
+/**
+ * Permanently delete a notification (only from History)
+ */
+export const deleteNotification = asyncHandler(async (req, res) => {
+  const { notificationId } = req.params;
+  const userId = req.userId;
+
+  if (!notificationId) {
+    throw new ValidationError("Notification ID is required");
+  }
+
+  const notification = await Notification.findOne({
+    _id: notificationId,
+    'recipient.userId': userId,
+    isActive: true
+  });
+
+  if (!notification) {
+    throw new NotFoundError("Notification not found");
+  }
+
+  await Notification.deleteOne({ _id: notificationId });
+
+  res.status(200).json({
+    success: true,
+    message: "Notification permanently deleted",
+    data: { notificationId }
+  });
+});

@@ -9,7 +9,11 @@ import {
   triggerKeyReminders,
   getNotificationStats,
   cleanupNotifications,
-  getNotificationById
+  getNotificationById,
+  getNotificationHistory,
+  archiveNotification,
+  unarchiveNotification,
+  deleteNotification
 } from "../controllers/notification.controller.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { rolePermissions } from "../middleware/roleAuth.js";
@@ -24,14 +28,20 @@ router.use(verifyToken);
 // GET routes - accessible to all authenticated users
 router.get("/", getMyNotifications); // Get user's notifications with optional filtering
 router.get("/unread-count", getUnreadCount); // Get unread notification count
+router.get("/history/list", getNotificationHistory); // Get notification history (archived & read)
 router.get("/:notificationId", getNotificationById); // Get specific notification by ID
 
 // POST routes - accessible to all authenticated users
 router.post("/mark-multiple-read", markMultipleAsRead); // Mark multiple notifications as read
 
+// DELETE routes - accessible to all authenticated users
+router.delete("/:notificationId", deleteNotification); // Permanently delete a notification
+
 // PUT/PATCH routes - accessible to all authenticated users
 router.patch("/:notificationId/read", markAsRead); // Mark specific notification as read
 router.patch("/:notificationId/unread", markAsUnread); // Mark specific notification as unread
+router.patch("/:notificationId/archive", archiveNotification); // Archive a notification
+router.patch("/:notificationId/unarchive", unarchiveNotification); // Unarchive a notification
 router.patch("/mark-all-read", markAllAsRead); // Mark all notifications as read
 
 

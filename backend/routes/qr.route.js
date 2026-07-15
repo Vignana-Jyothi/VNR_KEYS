@@ -264,10 +264,17 @@ router.post("/batch-return", rolePermissions.adminOrSecurity, asyncHandler(async
     );
   }
 
-  // Create notifications for batch return
+  // Create notifications for batch return through the unified transaction flow
   try {
-    const { createBatchReturnNotifications } = await import('../services/notificationService.js');
-    await createBatchReturnNotifications(keys, returnedBy, keyOriginalUsers);
+    const { notifyKeyTransaction } = await import('../services/keyNotificationService.js');
+    await notifyKeyTransaction({
+      eventType: 'return',
+      isBulk: true,
+      faculty: facultyUser,
+      keys: keys.map(key => ({ keyNumber: key.keyNumber, keyName: key.keyName, location: key.location })),
+      processor: returnedBy,
+      processorRole: returnedBy?.role === 'security' ? 'Security Officer' : returnedBy?.role || null,
+    });
   } catch (notificationError) {
     console.error('❌ Error sending batch return notifications:', notificationError);
   }

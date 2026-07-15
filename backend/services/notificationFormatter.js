@@ -41,6 +41,7 @@ export const formatNotificationMessage = (ctx, recipientRole) => {
     (processor?.role === "security" ? "Security Officer" : processor?.role || "System");
   const procDisplayName = processor ? processor.name : "Faculty (self)";
   const now = IST();
+  const statusLine = "Status:\nCompleted";
 
   // Format key list as bullet points
   const keyBullets = keys.map(k => `• ${k.keyNumber}`).join("\n");
@@ -97,6 +98,7 @@ export const formatNotificationMessage = (ctx, recipientRole) => {
  */
 function formatFacultyNotification({ facultyName, actionPast, keyBullets, totalKeys, procDisplayName, procDisplayRole, now, icon }) {
   const title = `${icon} Keys ${actionPast.charAt(0).toUpperCase() + actionPast.slice(1)} Successfully`;
+  const statusLine = "Status:\nCompleted";
   
   const message = `Hello ${facultyName},
 
@@ -114,6 +116,8 @@ ${procDisplayRole} ${procDisplayName}
 Date & Time:
 ${now}
 
+${statusLine}
+
 Please return the keys after use.`;
 
   return { title, message };
@@ -124,6 +128,7 @@ Please return the keys after use.`;
  */
 function formatSecurityNotification({ facultyName, dept, facId, actionPast, keyBullets, totalKeys, isSelf, procDisplayName, procDisplayRole, now, icon }) {
   const title = `${icon} Keys ${actionPast.charAt(0).toUpperCase() + actionPast.slice(1)} — ${facultyName} (${dept})`;
+  const statusLine = "Status:\nCompleted";
   
   const processedBy = isSelf ? "You" : `${procDisplayRole} ${procDisplayName}`;
   
@@ -146,7 +151,9 @@ ${actionPast.charAt(0).toUpperCase() + actionPast.slice(1)} By:
 ${processedBy}
 
 Date & Time:
-${now}`;
+${now}
+
+${statusLine}`;
 
   return { title, message };
 }
@@ -156,6 +163,7 @@ ${now}`;
  */
 function formatAdminNotification({ facultyName, dept, facId, actionPast, keyBullets, totalKeys, procDisplayName, procDisplayRole, now, icon }) {
   const title = `${icon} Keys ${actionPast.charAt(0).toUpperCase() + actionPast.slice(1)} — ${facultyName} (${dept})`;
+  const statusLine = "Status:\nCompleted";
   
   const message = `Faculty:
 ${facultyName}
@@ -176,7 +184,9 @@ Processed By:
 ${procDisplayRole} ${procDisplayName}
 
 Date & Time:
-${now}`;
+${now}
+
+${statusLine}`;
 
   return { title, message };
 }
@@ -217,6 +227,7 @@ export const formatEmailContent = (ctx, recipientRole) => {
     minute: "2-digit",
     hour12: true,
   });
+  const statusText = "Completed";
 
   // Format key list as HTML bullets
   const keyListHtml = keys.map(k => `<li>${k.keyNumber}</li>`).join("");
@@ -234,6 +245,7 @@ export const formatEmailContent = (ctx, recipientRole) => {
         now,
         icon,
         accentColor,
+        statusText,
       });
 
     case "security":
@@ -251,6 +263,7 @@ export const formatEmailContent = (ctx, recipientRole) => {
         now,
         icon,
         accentColor,
+        statusText,
       });
 
     case "admin":
@@ -267,6 +280,7 @@ export const formatEmailContent = (ctx, recipientRole) => {
         now,
         icon,
         accentColor,
+        statusText,
       });
 
     default:
@@ -277,10 +291,23 @@ export const formatEmailContent = (ctx, recipientRole) => {
 /**
  * Format Faculty email HTML
  */
-function formatFacultyEmail({ facultyName, action, actionPast, keyListHtml, totalKeys, procDisplayName, procDisplayRole, now, icon, accentColor }) {
+function formatFacultyEmail({ facultyName, action, actionPast, keyListHtml, totalKeys, procDisplayName, procDisplayRole, now, icon, accentColor, statusText }) {
   const subject = `${icon} Keys ${action} Successfully`;
-  
-  const html = `
+    // Format key list as table rows
+  const keyTableRows = keyListHtml
+    .split('<li>').filter(Boolean)
+    .map(item => {
+      const keyNumber = item.replace('</li>', '').trim();
+      return `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:center;">
+            <span style="font-size:13px;color:#1e293b;font-weight:600;">${keyNumber}</span>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+    const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -380,6 +407,9 @@ function formatFacultyEmail({ facultyName, action, actionPast, keyListHtml, tota
                     <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
                                text-transform:uppercase;letter-spacing:0.5px;">Date & Time</p>
                     <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">${now}</p>
+                    <p style="font-size:11px;color:#94a3b8;margin:8px 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Status</p>
+                    <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">${statusText}</p>
                   </td>
                 </tr>
               </table>
@@ -421,7 +451,21 @@ function formatFacultyEmail({ facultyName, action, actionPast, keyListHtml, tota
 /**
  * Format Security email HTML
  */
-function formatSecurityEmail({ facultyName, dept, facId, action, actionPast, keyListHtml, totalKeys, isSelf, procDisplayName, procDisplayRole, now, icon, accentColor }) {
+function formatSecurityEmail({ facultyName, dept, facId, action, actionPast, keyListHtml, totalKeys, isSelf, procDisplayName, procDisplayRole, now, icon, accentColor, statusText }) {
+  // Format key list as table rows
+  const keyTableRows = keyListHtml
+    .split('<li>').filter(Boolean)
+    .map(item => {
+      const keyNumber = item.replace('</li>', '').trim();
+      return `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:center;">
+            <span style="font-size:13px;color:#1e293b;font-weight:600;">${keyNumber}</span>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
   const subject = `${icon} Keys ${action} — ${facultyName} (${dept})`;
   const processedBy = isSelf ? "You" : `${procDisplayRole} ${procDisplayName}`;
   
@@ -546,6 +590,9 @@ function formatSecurityEmail({ facultyName, dept, facId, action, actionPast, key
                     <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
                                text-transform:uppercase;letter-spacing:0.5px;">Date & Time</p>
                     <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">${now}</p>
+                    <p style="font-size:11px;color:#94a3b8;margin:8px 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Status</p>
+                    <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">${statusText}</p>
                   </td>
                 </tr>
               </table>
@@ -584,7 +631,21 @@ function formatSecurityEmail({ facultyName, dept, facId, action, actionPast, key
 /**
  * Format Admin email HTML
  */
-function formatAdminEmail({ facultyName, dept, facId, action, actionPast, keyListHtml, totalKeys, procDisplayName, procDisplayRole, now, icon, accentColor }) {
+function formatAdminEmail({ facultyName, dept, facId, action, actionPast, keyListHtml, totalKeys, procDisplayName, procDisplayRole, now, icon, accentColor, statusText }) {
+  // Format key list as table rows
+  const keyTableRows = keyListHtml
+    .split('<li>').filter(Boolean)
+    .map(item => {
+      const keyNumber = item.replace('</li>', '').trim();
+      return `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:center;">
+            <span style="font-size:13px;color:#1e293b;font-weight:600;">${keyNumber}</span>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
   const subject = `${icon} Keys ${action} — ${facultyName} (${dept})`;
   
   const html = `
@@ -708,6 +769,9 @@ function formatAdminEmail({ facultyName, dept, facId, action, actionPast, keyLis
                     <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
                                text-transform:uppercase;letter-spacing:0.5px;">Date & Time</p>
                     <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">${now}</p>
+                    <p style="font-size:11px;color:#94a3b8;margin:8px 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Status</p>
+                    <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">${statusText}</p>
                   </td>
                 </tr>
               </table>
