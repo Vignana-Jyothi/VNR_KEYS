@@ -13,46 +13,61 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
 
   // ✅ QR Data Validator
   function validateQRData(data) {
-  if (!data || typeof data !== "object") {
-    throw new Error("Invalid QR data: not an object");
-  }
+    if (!data || typeof data !== "object") {
+      throw new Error("Invalid QR data: not an object");
+    }
 
-  const allowedTypes = ["key-request", "key-return", "batch-return"];
+    // Log decoded payload for easy debugging
+    console.log("🔍 QR Decoded payload:", JSON.stringify(data, null, 2));
 
-  if (!data.type || !allowedTypes.includes(data.type)) {
-    throw new Error(`Invalid or missing 'type'. Allowed types: ${allowedTypes.join(", ")}`);
-  }
+    const allowedTypes = ["key-request", "key-return", "batch-return", "batch-request"];
 
-  switch (data.type) {
-    case "key-request":
-      if (!data.keyId || !data.userId || !data.timestamp || !data.requestId) {
-        throw new Error("Invalid key-request format: missing required fields (keyId, userId, timestamp, requestId)");
-      }
-      break;
+    if (!data.type || !allowedTypes.includes(data.type)) {
+      throw new Error(`Invalid or missing 'type'. Allowed types: ${allowedTypes.join(", ")}`);
+    }
 
-    case "key-return":
-      if (!data.keyId || !data.userId || !data.timestamp || !data.returnId) {
-        throw new Error("Invalid key-return format: missing required fields (keyId, userId, timestamp, returnId)");
-      }
-      break;
+    switch (data.type) {
+      case "key-request":
+        if (!data.keyId || !data.userId || !data.timestamp || !data.requestId) {
+          throw new Error("Invalid key-request format: missing required fields (keyId, userId, timestamp, requestId)");
+        }
+        break;
 
-    case "batch-return":
-      if (
-        !Array.isArray(data.keyIds) ||
-        data.keyIds.length === 0 ||
-        !data.userId ||
-        !data.timestamp ||
-        !data.returnId
-      ) {
-        throw new Error("Invalid batch-return format: must include keyIds[], userId, timestamp, returnId");
-      }
-      break;
+      case "key-return":
+        if (!data.keyId || !data.userId || !data.timestamp || !data.returnId) {
+          throw new Error("Invalid key-return format: missing required fields (keyId, userId, timestamp, returnId)");
+        }
+        break;
 
-    default:
-      throw new Error(`Unsupported QR type: ${data.type}`);
-  }
+      case "batch-return":
+        if (
+          !Array.isArray(data.keyIds) ||
+          data.keyIds.length === 0 ||
+          !data.userId ||
+          !data.timestamp ||
+          !data.returnId
+        ) {
+          throw new Error("Invalid batch-return format: must include keyIds[], userId, timestamp, returnId");
+        }
+        break;
 
-  return data; // ✅ valid QR data
+      case "batch-request":
+        if (
+          !Array.isArray(data.keyIds) ||
+          data.keyIds.length === 0 ||
+          !data.userId ||
+          !data.timestamp ||
+          !data.requestId
+        ) {
+          throw new Error("Invalid batch-request format: must include keyIds[], userId, timestamp, requestId");
+        }
+        break;
+
+      default:
+        throw new Error(`Unsupported QR type: ${data.type}`);
+    }
+
+    return data; // ✅ valid QR data
   }
 
 

@@ -169,6 +169,14 @@ export const validateQRData = (qrData) => {
     return result;
   }
 
+  // Check for batch request QR code (multi-key checkout)
+  if (qrData.type === 'batch-request' && Array.isArray(qrData.keyIds)) {
+    console.log('✅ QR Validation: Valid batch-request QR code');
+    result.isValid = true;
+    result.type = 'batch-request';
+    return result;
+  }
+
   // Check for key return QR code
   if ((qrData.type === 'key-return' || qrData.type === 'batch-return') && qrData.keyId) {
     console.log('✅ QR Validation: Valid key-return QR code');

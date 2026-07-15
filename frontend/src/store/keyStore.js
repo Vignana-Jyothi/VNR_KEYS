@@ -873,10 +873,14 @@ export const useKeyStore = create((set, get) => ({
   },
 
   // Bulk return multiple keys at once (faculty/admin)
-  bulkReturnKeysAPI: async (keyIds) => {
+  // facultyUserId is optional — pass it when security scans a faculty QR on their behalf
+  bulkReturnKeysAPI: async (keyIds, facultyUserId = null) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.post(`${API_URL}/return-bulk`, { keyIds }, { withCredentials: true });
+      const body = { keyIds };
+      if (facultyUserId) body.requestedByUserId = facultyUserId;
+
+      const response = await axios.post(`${API_URL}/return-bulk`, body, { withCredentials: true });
       const { succeeded } = response.data.data;
       if (succeeded.length > 0) {
         const succeededIds = new Set(succeeded.map(s => String(s.keyId)));

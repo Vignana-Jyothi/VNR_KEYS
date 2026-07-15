@@ -292,20 +292,14 @@ export const takeKey = asyncHandler(async (req, res) => {
 
   // Create notification for key taken
   try {
-    const { createKeyTakenNotification, notifySecurityUsers, notifyAdminUsers } = await import('../services/notificationService.js');
-    await createKeyTakenNotification(key, user);
-    await notifySecurityUsers(
-      'Key Taken',
-      `${user.role === 'student' ? 'Student' : 'Faculty'} ${user.name} has taken key ${key.keyName} (${key.keyNumber}) from ${key.location}`,
-      'key_taken', 'low',
-      { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: user._id, facultyName: user.name }
-    );
-    await notifyAdminUsers(
-      'Key Taken',
-      `${user.name} (${user.role === 'student' ? 'Student' : 'Faculty'}) has taken key ${key.keyName} (${key.keyNumber}) — ${key.department}, ${key.location}`,
-      'key_taken', 'low',
-      { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: user._id, facultyName: user.name }
-    );
+    const { notifyKeyTransaction } = await import('../services/keyNotificationService.js');
+    await notifyKeyTransaction({
+      eventType: "checkout",
+      isBulk:    false,
+      faculty:   user,
+      keys:      [{ keyNumber: key.keyNumber, keyName: key.keyName, location: key.location }],
+      processor: null,   // faculty took it themselves
+    });
   } catch (notificationError) {
     console.error('❌ Error sending key taken notification:', notificationError);
   }
@@ -355,51 +349,21 @@ export const returnKey = asyncHandler(async (req, res) => {
 
   await key.returnKey(returnedBy);
 
-  // Create notifications based on who is returning the key
+  // Create notifications for all roles
   try {
-    console.log('🔄 Starting notification process for key return...');
-    console.log('Original user:', originalUser ? { id: originalUser._id, name: originalUser.name } : 'null');
-    console.log('Returned by:', returnedBy ? { id: returnedBy._id, name: returnedBy.name } : 'null');
-
-    const { createKeySelfReturnedNotification, createKeyPendingReturnNotification, notifySecurityUsers, notifyAdminUsers } = await import('../services/notificationService.js');
-    
-    if (originalUser && returnedBy) {
-      if (originalUser._id.toString() === returnedBy._id.toString()) {
-        // Key returned by original taker
-        console.log('📢 Self-return detected, creating self-return notification');
-        const notification = await createKeySelfReturnedNotification(key, originalUser);
-        console.log('✅ Self-return notification created:', notification._id);
-      } else {
-        // If key is being returned by someone else and it's after hours, send a pending notification
-        console.log('📢 Return by different user detected, checking time...');
-        const now = new Date();
-        const keyTakenTime = new Date(key.takenAt);
-        if (keyTakenTime.getDate() === now.getDate() && now.getHours() >= 17) {
-          console.log('📢 After-hours return detected, creating pending notification');
-          const notification = await createKeyPendingReturnNotification(key, originalUser);
-          console.log('✅ Pending notification created:', notification._id);
-        }
-      }
-
-      // Notify security and admin about the return
-      await notifySecurityUsers(
-        'Key Returned',
-        `${originalUser.role === 'student' ? 'Student' : 'Faculty'} ${originalUser.name} has returned key ${key.keyName} (${key.keyNumber})`,
-        'key_returned', 'low',
-        { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
-      );
-      await notifyAdminUsers(
-        'Key Returned',
-        `${originalUser.name} (${originalUser.role === 'student' ? 'Student' : 'Faculty'}) returned key ${key.keyName} (${key.keyNumber}) — ${originalUser.department}`,
-        'key_returned', 'low',
-        { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
-      );
-    } else {
-      console.log('⚠️ Missing user information for notification:', { originalUser: !!originalUser, returnedBy: !!returnedBy });
-    }
+    const { notifyKeyTransaction } = await import('../services/keyNotificationService.js');
+    const isSelf = originalUser && returnedBy &&
+      originalUser._id.toString() === returnedBy._id.toString();
+    await notifyKeyTransaction({
+      eventType:     "return",
+      isBulk:        false,
+      faculty:       originalUser || returnedBy,
+      keys:          [{ keyNumber: key.keyNumber, keyName: key.keyName, location: key.location }],
+      processor:     isSelf ? null : returnedBy,
+      processorRole: !isSelf && returnedBy?.role === "security" ? "Security Officer" : returnedBy?.role || null,
+    });
   } catch (notificationError) {
     console.error('❌ Error sending key return notification:', notificationError);
-    console.error('Error stack:', notificationError.stack);
   }
 
   // Log the return operation
@@ -930,53 +894,19 @@ export const qrScanReturn = asyncHandler(async (req, res) => {
     });
   }
 
-  // Send notification based on who is returning the key
+  // Send notification — centralised service handles faculty + security + admin
   try {
-    console.log('🔵 Processing return notification...');
-    const returnedBy = await User.findById(req.userId);
-    console.log('🔵 Return processed by:', returnedBy.name);
-
-    const { createKeySelfReturnedNotification, createKeyReturnedNotification, createKeyPendingReturnNotification, notifySecurityUsers, notifyAdminUsers } = 
-      await import('../services/notificationService.js');
-
-    if (originalUser) {
-      console.log('🔵 Processing notification for original user:', originalUser.name);
-      
-      if (originalUser._id.toString() === returnedBy._id.toString()) {
-        // Original faculty returning their own key
-        console.log('🔵 Self-return detected, creating self-return notification');
-        await createKeySelfReturnedNotification(key, originalUser);
-        console.log('✅ Self-return notification created');
-      } else {
-        // Security or another user returning the key
-        console.log('🔵 Return by other user detected, creating return notification');
-        await createKeyReturnedNotification(key, originalUser, returnedBy);
-        console.log('✅ Return notification created');
-
-        // Also send pending notification if key was overdue
-        const now = new Date();
-        const keyTakenTime = new Date(key.takenAt);
-        if (keyTakenTime.getDate() === now.getDate() && now.getHours() >= 17) {
-          console.log('🔵 After-hours return detected, creating pending notification');
-          await createKeyPendingReturnNotification(key, originalUser);
-          console.log('✅ Pending notification created');
-        }
-      }
-
-      // Notify security and admin about the return
-      await notifySecurityUsers(
-        'Key Returned',
-        `${originalUser.role === 'student' ? 'Student' : 'Faculty'} ${originalUser.name} has returned key ${key.keyName} (${key.keyNumber})`,
-        'key_returned', 'low',
-        { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
-      );
-      await notifyAdminUsers(
-        'Key Returned',
-        `${originalUser.name} (${originalUser.role === 'student' ? 'Student' : 'Faculty'}) returned key ${key.keyName} (${key.keyNumber}) — ${originalUser.department}`,
-        'key_returned', 'low',
-        { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName }
-      );
-    }
+    const scanner = await User.findById(req.userId);
+    const isSelf  = originalUser._id.toString() === scanner._id.toString();
+    const { notifyKeyTransaction } = await import('../services/keyNotificationService.js');
+    await notifyKeyTransaction({
+      eventType:     "return",
+      isBulk:        false,
+      faculty:       originalUser,
+      keys:          [{ keyNumber: key.keyNumber, keyName: key.keyName, location: key.location }],
+      processor:     isSelf ? null : scanner,
+      processorRole: !isSelf && scanner?.role === "security" ? "Security Officer" : scanner?.role || null,
+    });
   } catch (notificationError) {
     console.error('❌ Error sending key return notification:', notificationError);
   }
@@ -1082,23 +1012,18 @@ export const qrScanRequest = asyncHandler(async (req, res) => {
     }
   });
 
-  // Create notification for key taken
+  // Create notification for key taken (security scanned on behalf of faculty)
   try {
-    const { createKeyTakenNotification, notifySecurityUsers, notifyAdminUsers } = await import('../services/notificationService.js');
-    await createKeyTakenNotification(key, requestingUser);
-    console.log('✅ Key taken notification created for user:', requestingUser.name);
-    await notifySecurityUsers(
-      'Key Taken',
-      `${requestingUser.role === 'student' ? 'Student' : 'Faculty'} ${requestingUser.name} has taken key ${key.keyName} (${key.keyNumber}) from ${key.location}`,
-      'key_taken', 'low',
-      { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: requestingUser._id, facultyName: requestingUser.name }
-    );
-    await notifyAdminUsers(
-      'Key Taken',
-      `${requestingUser.name} (${requestingUser.role === 'student' ? 'Student' : 'Faculty'}) has taken key ${key.keyName} (${key.keyNumber}) — ${requestingUser.department}, ${key.location}`,
-      'key_taken', 'low',
-      { keyId: key._id, keyNumber: key.keyNumber, keyName: key.keyName, facultyId: requestingUser._id, facultyName: requestingUser.name }
-    );
+    const scanner = await User.findById(req.userId);
+    const { notifyKeyTransaction } = await import('../services/keyNotificationService.js');
+    await notifyKeyTransaction({
+      eventType:     "checkout",
+      isBulk:        false,
+      faculty:       requestingUser,
+      keys:          [{ keyNumber: key.keyNumber, keyName: key.keyName, location: key.location }],
+      processor:     scanner,
+      processorRole: scanner?.role === "security" ? "Security Officer" : scanner?.role || null,
+    });
   } catch (notificationError) {
     console.error('❌ Error sending key taken notification:', notificationError);
   }

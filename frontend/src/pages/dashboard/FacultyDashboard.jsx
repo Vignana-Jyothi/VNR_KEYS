@@ -249,9 +249,11 @@ const FacultyDashboard = () => {
     handleBackToDepartments: handleBackToDepartments,
     handleToggleFrequent,
     user,
+    // Refresh helpers needed by bulk operations
+    fetchKeys,
+    fetchTakenKeys,
     // My Keys page specific
     takenKeys,
-    fetchTakenKeys,
     isLoadingTakenKeys,
     // All Keys page specific
     frequentlyUsedKeys,

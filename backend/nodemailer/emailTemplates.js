@@ -155,3 +155,160 @@ export const NOTIFICATION_EMAIL_TEMPLATE = `
 </body>
 </html>
 `;
+
+// ─── Key Transaction Email Template ────────────────────────────────────────
+// Used for all checkout / return events (single and batch)
+// Variables: {subject} {recipientName} {eventLabel} {eventIcon}
+//            {keyRowsHtml} {totalKeys} {facultyName} {facultyId}
+//            {department} {processedBy} {processedByRole}
+//            {dateTime} {statusLabel} {statusColor}
+export const KEY_TRANSACTION_EMAIL_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{subject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:10px;overflow:hidden;
+                      box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);
+                        padding:28px 32px;text-align:center;">
+              <p style="color:#93c5fd;font-size:13px;margin:0 0 6px;letter-spacing:1px;
+                         text-transform:uppercase;">VNR VJIET Key Management</p>
+              <h1 style="color:#ffffff;font-size:24px;margin:0;font-weight:700;">
+                {eventIcon} {eventLabel}
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <p style="font-size:15px;color:#374151;margin:0;">
+                Hello <strong>{recipientName}</strong>,
+              </p>
+              <p style="font-size:14px;color:#6b7280;margin:8px 0 0;">
+                The following key transaction has been recorded.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Status badge -->
+          <tr>
+            <td style="padding:16px 32px 0;">
+              <span style="display:inline-block;padding:5px 14px;border-radius:999px;
+                            background:{statusColor}22;color:{statusColor};
+                            font-size:12px;font-weight:700;letter-spacing:0.5px;">
+                ● {statusLabel}
+              </span>
+            </td>
+          </tr>
+
+          <!-- Faculty card -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#f8fafc;border:1px solid #e2e8f0;
+                             border-radius:8px;overflow:hidden;">
+                <tr>
+                  <td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+                    <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Faculty</p>
+                    <p style="font-size:15px;color:#1e293b;font-weight:600;margin:0;">
+                      {facultyName}
+                    </p>
+                  </td>
+                  <td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+                    <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Faculty ID</p>
+                    <p style="font-size:15px;color:#1e293b;font-weight:600;margin:0;">
+                      {facultyId}
+                    </p>
+                  </td>
+                  <td style="padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+                    <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Department</p>
+                    <p style="font-size:15px;color:#1e293b;font-weight:600;margin:0;">
+                      {department}
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Processed By</p>
+                    <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">
+                      {processedBy}
+                    </p>
+                    <p style="font-size:12px;color:#64748b;margin:2px 0 0;">{processedByRole}</p>
+                  </td>
+                  <td colspan="2" style="padding:14px 18px;">
+                    <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
+                               text-transform:uppercase;letter-spacing:0.5px;">Date &amp; Time</p>
+                    <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">{dateTime}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Keys issued/returned -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="font-size:13px;color:#64748b;font-weight:700;margin:0 0 10px;
+                         text-transform:uppercase;letter-spacing:0.5px;">
+                Keys ({totalKeys})
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                <tr style="background:#f1f5f9;">
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;
+                              color:#64748b;text-transform:uppercase;letter-spacing:0.5px;
+                              font-weight:600;border-bottom:1px solid #e2e8f0;">Key No.</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;
+                              color:#64748b;text-transform:uppercase;letter-spacing:0.5px;
+                              font-weight:600;border-bottom:1px solid #e2e8f0;">Key Name</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:11px;
+                              color:#64748b;text-transform:uppercase;letter-spacing:0.5px;
+                              font-weight:600;border-bottom:1px solid #e2e8f0;">Location</th>
+                </tr>
+                {keyRowsHtml}
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer note -->
+          <tr>
+            <td style="padding:24px 32px 32px;">
+              <p style="font-size:12px;color:#9ca3af;margin:0;line-height:1.6;">
+                This is an automated notification from the VNR VJIET Key Management System.
+                Please do not reply to this email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer bar -->
+          <tr>
+            <td style="background:#1e3a5f;padding:14px 32px;text-align:center;">
+              <p style="font-size:12px;color:#93c5fd;margin:0;">
+                © {currentYear} VNR VJIET Key Management · All rights reserved
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;

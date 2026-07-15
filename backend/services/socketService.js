@@ -256,9 +256,36 @@ export const emitSystemNotification = (notificationData) => {
 };
 
 /**
- * Get connected clients count
- * @returns {number} Number of connected clients
+ * Emit bulk checkout/return completion to the requesting faculty
+ * @param {string} facultyUserId - The faculty user ID whose QR was scanned
+ * @param {string} batchId       - The batchId from the QR payload
+ * @param {string} action        - 'bulk-take' | 'bulk-return'
+ * @param {Object} result        - { succeeded[], failed[] }
  */
+export const emitBulkComplete = (facultyUserId, batchId, action, result) => {
+  if (!global.io) {
+    console.warn('Socket.IO not initialized');
+    return;
+  }
+
+  const payload = {
+    action,
+    batchId,
+    succeeded: result.succeeded || [],
+    failed:    result.failed    || [],
+    timestamp: new Date().toISOString(),
+  };
+
+  // Emit to the faculty member's personal room so their QR modal can react
+  global.io.to(`user-${facultyUserId}`).emit('bulk-complete', payload);
+  global.io.to(`user-${facultyUserId}`).emit('user-key-updated', { ...payload, key: null });
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📦 bulk-complete emitted to faculty ${facultyUserId}: ${action}, batchId=${batchId}, succeeded=${payload.succeeded.length}`);
+  }
+};
+
+
 export const getConnectedClientsCount = () => {
   if (!global.io) {
     return 0;

@@ -5,6 +5,7 @@ import {
 	PASSWORD_RESET_SUCCESS_TEMPLATE,
 	WELCOME_EMAIL_TEMPLATE,
 	NOTIFICATION_EMAIL_TEMPLATE,
+	KEY_TRANSACTION_EMAIL_TEMPLATE,
 } from "./emailTemplates.js";
 
 // Send verification email
@@ -138,5 +139,116 @@ export const sendNotificationEmail = async (email, name, title, message, type, m
 	} catch (error) {
 		console.error("❌ Error sending notification email:", error);
 		throw new Error(`Error sending notification email: ${error.message}`);
+	}
+};
+
+/**
+ * Send a structured key-transaction email (checkout or return).
+ *
+ * @param {string}   toEmail
+ * @param {string}   recipientName
+ * @param {object}   data
+ * @param {string}   data.eventType       - "checkout" | "return"
+ * @param {string}   data.facultyName
+ * @param {string}   data.facultyId
+ * @param {string}   data.department
+ * @param {Array}    data.keys            - [{keyNumber, keyName, location}]
+ * @param {string}   data.processedBy     - display name of the person who scanned
+ * @param {string}   data.processedByRole - e.g. "Security Officer" | "Faculty"
+ * @param {string}   data.recipientRole   - "faculty" | "security" | "admin"
+ */
+export const sendKeyTransactionEmail = async (toEmail, recipientName, data) => {
+	const transporter = createTransporter();
+
+	const {
+		eventType,
+		facultyName,
+		facultyId    = "N/A",
+		department   = "N/A",
+		keys         = [],
+		processedBy,
+		processedByRole = "",
+		recipientRole   = "faculty",
+	} = data;
+
+	const isCheckout   = eventType === "checkout";
+	const eventLabel   = isCheckout ? "Keys Successfully Issued" : "Keys Successfully Returned";
+	const eventIcon    = isCheckout ? "🔑" : "✅";
+	const statusLabel  = "Completed";
+	const statusColor  = "#16a34a";   // green
+
+	// Subject line per role
+	const subjectMap = {
+		faculty:  isCheckout ? `🔑 Keys Successfully Issued — VNR Keys` : `✅ Keys Successfully Returned — VNR Keys`,
+		security: isCheckout ? `Keys Issued to ${facultyName}` : `Keys Returned by ${facultyName}`,
+		admin:    isCheckout ? `Key Transaction Audit — Checkout` : `Key Transaction Audit — Return`,
+	};
+	const subject = subjectMap[recipientRole] ?? eventLabel;
+
+	// Key table rows
+	const keyRowsHtml = keys.map((k, i) => `
+		<tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+			<td style="padding:10px 14px;font-size:13px;color:#1e293b;
+			            font-weight:600;border-bottom:1px solid #e2e8f0;">
+				${k.keyNumber || "—"}
+			</td>
+			<td style="padding:10px 14px;font-size:13px;color:#374151;
+			            border-bottom:1px solid #e2e8f0;">
+				${k.keyName || "—"}
+			</td>
+			<td style="padding:10px 14px;font-size:13px;color:#374151;
+			            border-bottom:1px solid #e2e8f0;">
+				${k.location || "—"}
+			</td>
+		</tr>
+	`).join("");
+
+	const dateTime = new Date().toLocaleString("en-IN", {
+		timeZone: "Asia/Kolkata",
+		day:      "2-digit",
+		month:    "short",
+		year:     "numeric",
+		hour:     "2-digit",
+		minute:   "2-digit",
+		hour12:   true,
+	});
+
+	const vars = {
+		subject,
+		recipientName,
+		eventLabel,
+		eventIcon,
+		keyRowsHtml,
+		totalKeys:       String(keys.length),
+		facultyName,
+		facultyId,
+		department,
+		processedBy,
+		processedByRole,
+		dateTime,
+		statusLabel,
+		statusColor,
+		currentYear:     String(new Date().getFullYear()),
+	};
+
+	let html = KEY_TRANSACTION_EMAIL_TEMPLATE;
+	Object.entries(vars).forEach(([k, v]) => {
+		html = html.split(`{${k}}`).join(v ?? "");
+	});
+
+	const mailOptions = {
+		from:    emailConfig.from,
+		to:      toEmail,
+		subject,
+		html,
+	};
+
+	try {
+		const info = await transporter.sendMail(mailOptions);
+		console.log(`✅ Key transaction email sent to ${toEmail} (${recipientRole}):`, info.messageId);
+		return info;
+	} catch (error) {
+		console.error(`❌ Error sending key transaction email to ${toEmail}:`, error.message);
+		throw error;
 	}
 };

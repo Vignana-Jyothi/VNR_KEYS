@@ -7,6 +7,7 @@ import { ValidationError, NotFoundError } from "../utils/errorHandler.js";
 import {
   emitKeyTaken,
   emitKeyReturned,
+  emitBulkComplete,
 } from "../services/socketService.js";
 import AuditService from "../services/auditService.js";
 
@@ -16,21 +17,32 @@ import AuditService from "../services/auditService.js";
  * Body: { keyIds: string[] }
  */
 export const takeBulk = asyncHandler(async (req, res) => {
-  const { keyIds } = req.body;
+  const { keyIds, requestedByUserId } = req.body;
 
   if (!Array.isArray(keyIds) || keyIds.length === 0) {
     throw new ValidationError("keyIds must be a non-empty array");
   }
 
-  // Deduplicate
   const uniqueIds = [...new Set(keyIds)];
 
   if (uniqueIds.length > 20) {
     throw new ValidationError("Cannot take more than 20 keys at once");
   }
 
-  const user = await User.findById(req.userId);
-  if (!user) throw new NotFoundError("User not found");
+  // Support two modes:
+  //   1. Faculty calls directly → req.userId is the faculty member
+  //   2. Security scans faculty QR → req.userId is security, requestedByUserId is faculty
+  const targetUserId = requestedByUserId || req.userId;
+
+  if (requestedByUserId) {
+    console.log(`🔵 takeBulk: Security (${req.userId}) processing on behalf of faculty (${requestedByUserId})`);
+  }
+
+  const user = await User.findById(targetUserId);
+  if (!user) {
+    console.error(`❌ takeBulk: Target user not found — targetUserId: ${targetUserId}, requestedByUserId: ${requestedByUserId}, caller: ${req.userId}`);
+    throw new NotFoundError("User not found");
+  }
 
   const succeeded = [];
   const failed = [];
@@ -64,8 +76,13 @@ export const takeBulk = asyncHandler(async (req, res) => {
         notes: `Bulk checkout — batch of ${uniqueIds.length} keys`
       });
 
-      // Audit
-      await AuditService.logKeyTaken(key, user, req, { isBulkOperation: true, batchSize: uniqueIds.length });
+      // Audit — records key assigned to `user` (faculty), processed by req.userId (may be security)
+      await AuditService.logKeyTaken(key, user, req, {
+        isBulkOperation:  true,
+        batchSize:        uniqueIds.length,
+        processedBy:      req.userId,           // security scanner or faculty themselves
+        assignedTo:       user._id.toString(),  // always the faculty member
+      });
 
       // Usage count
       if (!user.keyUsage) user.keyUsage = new Map();
@@ -85,35 +102,30 @@ export const takeBulk = asyncHandler(async (req, res) => {
     await user.save();
   }
 
+  // Emit bulk-complete to the faculty member so their QR modal auto-advances
+  const { batchId } = req.body;
+  if (batchId && succeeded.length > 0) {
+    emitBulkComplete(
+      user._id.toString(),
+      batchId,
+      "bulk-take",
+      { succeeded, failed }
+    );
+  }
+
   // Send one summary notification
   if (succeeded.length > 0) {
     try {
-      const keyList = succeeded.map(k => k.keyNumber).join(", ");
-      const { createAndSendNotification, notifySecurityUsers, notifyAdminUsers } = await import("../services/notificationService.js");
-
-      // Faculty notification
-      await createAndSendNotification({
-        recipient: { userId: user._id, name: user.name, email: user.email, role: user.role },
-        title: `${succeeded.length} Key${succeeded.length > 1 ? "s" : ""} Taken`,
-        message: `You have successfully taken ${succeeded.length} key${succeeded.length > 1 ? "s" : ""}: ${keyList}`,
-        type: "key_taken",
-        priority: "low",
-        metadata: { keyIds: succeeded.map(k => k.keyId), keyNumbers: succeeded.map(k => k.keyNumber), isBulk: true }
-      }, { email: true, realTime: true });
-
-      // Security & admin
-      await notifySecurityUsers(
-        `Bulk Key Checkout — ${succeeded.length} Keys`,
-        `${user.name} has taken ${succeeded.length} key${succeeded.length > 1 ? "s" : ""}: ${keyList}`,
-        "key_taken", "low",
-        { facultyId: user._id, facultyName: user.name, keyNumbers: succeeded.map(k => k.keyNumber), isBulk: true }
-      );
-      await notifyAdminUsers(
-        `Bulk Key Checkout — ${succeeded.length} Keys`,
-        `${user.name} (${user.role}) has taken ${succeeded.length} key${succeeded.length > 1 ? "s" : ""}: ${keyList}`,
-        "key_taken", "low",
-        { facultyId: user._id, facultyName: user.name, keyNumbers: succeeded.map(k => k.keyNumber), isBulk: true }
-      );
+      const { notifyKeyTransaction } = await import("../services/keyNotificationService.js");
+      const scanner = requestedByUserId ? await User.findById(req.userId).lean() : null;
+      await notifyKeyTransaction({
+        eventType:     "checkout",
+        isBulk:        true,
+        faculty:       user,
+        keys:          succeeded.map(k => ({ keyNumber: k.keyNumber, keyName: k.keyName, location: k.location })),
+        processor:     scanner,
+        processorRole: scanner?.role === "security" ? "Security Officer" : scanner?.role || null,
+      });
     } catch (notifErr) {
       console.error("❌ Bulk take notification error:", notifErr.message);
     }
@@ -132,7 +144,7 @@ export const takeBulk = asyncHandler(async (req, res) => {
  * Body: { keyIds: string[] }
  */
 export const returnBulk = asyncHandler(async (req, res) => {
-  const { keyIds } = req.body;
+  const { keyIds, requestedByUserId } = req.body;
 
   if (!Array.isArray(keyIds) || keyIds.length === 0) {
     throw new ValidationError("keyIds must be a non-empty array");
@@ -144,8 +156,15 @@ export const returnBulk = asyncHandler(async (req, res) => {
     throw new ValidationError("Cannot return more than 20 keys at once");
   }
 
-  const user = await User.findById(req.userId);
-  if (!user) throw new NotFoundError("User not found");
+  // returnBulk: the person physically returning (could be security scanning faculty QR)
+  const returnerUser = await User.findById(req.userId);
+  if (!returnerUser) throw new NotFoundError("User not found");
+
+  // The faculty member who originally took the keys (from QR or defaults to caller)
+  const originalUserId = requestedByUserId || req.userId;
+  const originalUser   = requestedByUserId
+    ? await User.findById(requestedByUserId)
+    : returnerUser;
 
   const succeeded = [];
   const failed = [];
@@ -163,13 +182,13 @@ export const returnBulk = asyncHandler(async (req, res) => {
         failed.push({ keyId, keyNumber: key.keyNumber, keyName: key.keyName, reason: "Key is already available" });
         continue;
       }
-      // Ensure this user actually owns the key
-      if (key.takenBy?.userId?.toString() !== req.userId) {
-        failed.push({ keyId, keyNumber: key.keyNumber, keyName: key.keyName, reason: "This key was not taken by you" });
+      // Ownership check: key must have been taken by the original faculty user
+      if (key.takenBy?.userId?.toString() !== originalUserId.toString()) {
+        failed.push({ keyId, keyNumber: key.keyNumber, keyName: key.keyName, reason: "This key was not taken by the requesting user" });
         continue;
       }
 
-      await key.returnKey(user);
+      await key.returnKey(returnerUser);
 
       // Update logbook
       const logEntry = await Logbook.findOne({
@@ -178,7 +197,7 @@ export const returnBulk = asyncHandler(async (req, res) => {
 
       if (logEntry) {
         logEntry.status = "available";
-        logEntry.returnedBy = { userId: user._id, name: user.name, email: user.email };
+        logEntry.returnedBy = { userId: returnerUser._id, name: returnerUser.name, email: returnerUser.email };
         logEntry.returnedAt = new Date();
         await logEntry.save();
       } else {
@@ -186,15 +205,15 @@ export const returnBulk = asyncHandler(async (req, res) => {
           keyNumber: key.keyNumber, keyName: key.keyName, location: key.location,
           status: "available", category: key.category, department: key.department,
           block: key.block, description: key.description,
-          returnedBy: { userId: user._id, name: user.name, email: user.email },
+          returnedBy: { userId: returnerUser._id, name: returnerUser.name, email: returnerUser.email },
           returnedAt: new Date(), frequentlyUsed: key.frequentlyUsed, isActive: true,
-          recordedBy: { userId: user._id, role: user.role },
+          recordedBy: { userId: returnerUser._id, role: returnerUser.role },
           notes: `Bulk return — batch of ${uniqueIds.length} keys`
         });
       }
 
-      // Audit
-      await AuditService.logKeyReturned(key, user, req, user, { isBulkOperation: true, batchSize: uniqueIds.length });
+      // Audit — log original user as the key holder, returner as who processed it
+      await AuditService.logKeyReturned(key, returnerUser, req, originalUser, { isBulkOperation: true, batchSize: uniqueIds.length });
 
       // Socket
       emitKeyReturned(key, req.userId);
@@ -205,35 +224,33 @@ export const returnBulk = asyncHandler(async (req, res) => {
     }
   }
 
-  // Send one summary notification
+  // Send one summary notification using the original faculty user's details
+  const notifUser = originalUser || returnerUser;
+
+  // Emit bulk-complete to the faculty member so their QR modal auto-advances
+  const { batchId } = req.body;
+  if (batchId && succeeded.length > 0) {
+    emitBulkComplete(
+      notifUser._id.toString(),
+      batchId,
+      "bulk-return",
+      { succeeded, failed }
+    );
+  }
+
   if (succeeded.length > 0) {
     try {
-      const keyList = succeeded.map(k => k.keyNumber).join(", ");
-      const { createAndSendNotification, notifySecurityUsers, notifyAdminUsers } = await import("../services/notificationService.js");
-
-      // Faculty notification
-      await createAndSendNotification({
-        recipient: { userId: user._id, name: user.name, email: user.email, role: user.role },
-        title: `${succeeded.length} Key${succeeded.length > 1 ? "s" : ""} Returned`,
-        message: `You have successfully returned ${succeeded.length} key${succeeded.length > 1 ? "s" : ""}: ${keyList}`,
-        type: "key_returned",
-        priority: "low",
-        metadata: { keyIds: succeeded.map(k => k.keyId), keyNumbers: succeeded.map(k => k.keyNumber), isBulk: true }
-      }, { email: true, realTime: true });
-
-      // Security & admin
-      await notifySecurityUsers(
-        `Bulk Key Return — ${succeeded.length} Keys`,
-        `${user.name} has returned ${succeeded.length} key${succeeded.length > 1 ? "s" : ""}: ${keyList}`,
-        "key_returned", "low",
-        { facultyId: user._id, facultyName: user.name, keyNumbers: succeeded.map(k => k.keyNumber), isBulk: true }
-      );
-      await notifyAdminUsers(
-        `Bulk Key Return — ${succeeded.length} Keys`,
-        `${user.name} (${user.role}) returned ${succeeded.length} key${succeeded.length > 1 ? "s" : ""}: ${keyList}`,
-        "key_returned", "low",
-        { facultyId: user._id, facultyName: user.name, keyNumbers: succeeded.map(k => k.keyNumber), isBulk: true }
-      );
+      const { notifyKeyTransaction } = await import("../services/keyNotificationService.js");
+      const isReturnedBySelf = returnerUser._id.toString() === notifUser._id.toString();
+      const processor = isReturnedBySelf ? null : returnerUser;
+      await notifyKeyTransaction({
+        eventType:     "return",
+        isBulk:        true,
+        faculty:       notifUser,
+        keys:          succeeded.map(k => ({ keyNumber: k.keyNumber, keyName: k.keyName, location: k.location })),
+        processor,
+        processorRole: processor?.role === "security" ? "Security Officer" : processor?.role || null,
+      });
     } catch (notifErr) {
       console.error("❌ Bulk return notification error:", notifErr.message);
     }
