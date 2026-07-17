@@ -53,14 +53,15 @@ const FacultyDashboard = () => {
 
   const {
     keys,
-    frequentlyUsedKeys,
-    usageCounts,
+    favoriteKeys,
     getTakenKeys,
     generateKeyRequestQR,
     generateKeyReturnQR,
     fetchKeys,
     fetchTakenKeys,
-    fetchUserFrequentlyUsedKeys,
+    fetchFavoriteKeys,
+    addFavoriteKey,
+    removeFavoriteKey,
     isLoadingTakenKeys,
   } = useKeyStore();
 
@@ -86,7 +87,7 @@ const FacultyDashboard = () => {
     if (user) {
       fetchKeys().catch(console.error);
       fetchTakenKeys(user.id).catch(console.error);
-      fetchUserFrequentlyUsedKeys().catch(console.error);
+      fetchFavoriteKeys().catch(console.error);
       
       const rolePath = user?.role === 'student' ? 'student' : 'faculty';
       const routeKey = user?.role === 'student' ? 'lastStudentRoute' : 'lastFacultyRoute';
@@ -97,7 +98,7 @@ const FacultyDashboard = () => {
         navigate(lastRoute);
       }
     }
-  }, [user, fetchKeys, fetchTakenKeys, fetchUserFrequentlyUsedKeys, navigate, location.pathname]);
+  }, [user, fetchKeys, fetchTakenKeys, fetchFavoriteKeys, navigate, location.pathname]);
 
   const takenKeys = getTakenKeys(user?.id);
 
@@ -262,9 +263,17 @@ const FacultyDashboard = () => {
     setSelectedDepartment(null);
   };
 
-  const handleToggleFrequent = (keyId) => {
-    // Add your logic for toggling frequent keys here
-    console.log('Toggle frequent for key:', keyId);
+  const handleToggleFavorite = async (keyId) => {
+    try {
+      const isFavorite = favoriteKeys.some(k => k.id === keyId);
+      if (isFavorite) {
+        await removeFavoriteKey(keyId);
+      } else {
+        await addFavoriteKey(keyId);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   const outletContext = {
@@ -277,17 +286,17 @@ const FacultyDashboard = () => {
     handleReturnKey,
     handleDepartmentClick,
     handleBackToDepartments: handleBackToDepartments,
-    handleToggleFrequent,
+    handleToggleFavorite,
     user,
     // Refresh helpers needed by bulk operations
     fetchKeys,
     fetchTakenKeys,
+    fetchFavoriteKeys,
     // My Keys page specific
     takenKeys,
     isLoadingTakenKeys,
     // All Keys page specific
-    frequentlyUsedKeys,
-    usageCounts,
+    favoriteKeys,
   };
 
   return (

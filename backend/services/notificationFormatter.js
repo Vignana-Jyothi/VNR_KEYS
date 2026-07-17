@@ -111,7 +111,7 @@ Total Keys:
 ${totalKeys}
 
 ${actionPast.charAt(0).toUpperCase() + actionPast.slice(1)} By:
-${procDisplayRole} ${procDisplayName}
+${procDisplayRole}: ${procDisplayName}
 
 Date & Time:
 ${now}
@@ -181,7 +181,7 @@ Total Keys:
 ${totalKeys}
 
 Processed By:
-${procDisplayRole} ${procDisplayName}
+${procDisplayRole}: ${procDisplayName}
 
 Date & Time:
 ${now}
@@ -398,7 +398,7 @@ function formatFacultyEmail({ facultyName, action, actionPast, keyListHtml, tota
                     <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
                                text-transform:uppercase;letter-spacing:0.5px;">${action} By</p>
                     <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">
-                      ${procDisplayRole} ${procDisplayName}
+                      ${procDisplayRole}: ${procDisplayName}
                     </p>
                   </td>
                 </tr>
@@ -467,7 +467,7 @@ function formatSecurityEmail({ facultyName, dept, facId, action, actionPast, key
     })
     .join('');
   const subject = `${icon} Keys ${action} — ${facultyName} (${dept})`;
-  const processedBy = isSelf ? "You" : `${procDisplayRole} ${procDisplayName}`;
+  const processedBy = isSelf ? "You" : `${procDisplayRole}: ${procDisplayName}`;
   
   const html = `
 <!DOCTYPE html>
@@ -760,7 +760,7 @@ function formatAdminEmail({ facultyName, dept, facId, action, actionPast, keyLis
                     <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;
                                text-transform:uppercase;letter-spacing:0.5px;">Processed By</p>
                     <p style="font-size:14px;color:#1e293b;font-weight:600;margin:0;">
-                      ${procDisplayRole} ${procDisplayName}
+                      ${procDisplayRole}: ${procDisplayName}
                     </p>
                   </td>
                 </tr>

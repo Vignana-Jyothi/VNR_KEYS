@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import { ShoppingBag, X } from "lucide-react";
 import SearchBar from "../../../components/keys/SearchBar";
 import SearchResults from "../../../components/keys/SearchResults";
-import FrequentlyUsedSection from "../../../components/keys/FrequentlyUsedSection";
+import FavoriteKeysSection from "../../../components/keys/FavoriteKeysSection";
 import DepartmentsSection from "../../../components/keys/DepartmentsSection";
 import DepartmentView from "../../../components/keys/DepartmentView";
 import BulkCheckoutModal from "../../../components/keys/BulkCheckoutModal";
@@ -14,15 +14,15 @@ const AllKeysPage = () => {
     setSearchQuery,
     selectedDepartment,
     keys,
-    frequentlyUsedKeys,
-    usageCounts,
+    favoriteKeys,
     handleRequestKey,
     handleReturnKey,
     handleDepartmentClick,
     handleBackToDepartments,
-    handleToggleFrequent,
+    handleToggleFavorite,
     fetchKeys,
     fetchTakenKeys,
+    fetchFavoriteKeys,
     user,
   } = useOutletContext();
 
@@ -55,7 +55,7 @@ const AllKeysPage = () => {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const selectedKeyObjects = availableKeys.filter((k) => selectedIds.has(k.id));
+  const selectedKeyObjects = keys.filter((k) => selectedIds.has(k.id) && k.status === "available");
 
   // Keys visible in the current view
   const viewKeys = selectedDepartment
@@ -82,6 +82,10 @@ const AllKeysPage = () => {
           keys={keys}
           onRequestKey={handleRequestKey}
           onReturnKey={handleReturnKey}
+          onToggleFavorite={handleToggleFavorite}
+          favoriteKeys={favoriteKeys}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
           userRole="faculty"
         />
       )}
@@ -148,7 +152,8 @@ const AllKeysPage = () => {
           keys={keys}
           searchQuery={searchQuery}
           onRequestKey={handleRequestKey}
-          onToggleFrequent={handleToggleFrequent}
+          onToggleFavorite={handleToggleFavorite}
+          favoriteKeys={favoriteKeys}
           onBack={handleBackToDepartments}
           // Bulk selection props
           selectedIds={selectedIds}
@@ -157,11 +162,12 @@ const AllKeysPage = () => {
       ) : (
         !searchQuery.trim() && (
           <>
-            <FrequentlyUsedSection
-              keys={frequentlyUsedKeys}
-              availabilityFilter="all"
+            <FavoriteKeysSection
+              keys={favoriteKeys}
               onRequestKey={handleRequestKey}
-              usageCounts={usageCounts}
+              onToggleFavorite={handleToggleFavorite}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
             />
             <DepartmentsSection
               keys={keys}

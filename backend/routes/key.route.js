@@ -18,6 +18,9 @@ import {
   qrScanReturn,
   qrScanRequest,
   manualAssignKey,
+  addFavoriteKey,
+  removeFavoriteKey,
+  getFavoriteKeys,
 } from "../controllers/key.controller.js";
 import { takeBulk, returnBulk } from "../controllers/bulkKey.controller.js";
 import { verifyToken } from "../middleware/verifyToken.js";
@@ -36,6 +39,7 @@ router.get("/my-taken", getMyTakenKeys); // Get keys taken by current user
 router.get("/all-taken", rolePermissions.adminOrSecurityOrFaculty, getAllTakenKeys); // Get all taken keys (for collective return)
 router.get("/frequently-used", getFrequentlyUsedKeys); // Get frequently used keys
 router.get("/my-frequently-used", getUserFrequentlyUsedKeys); // Get user's frequently used keys
+router.get("/my-favorites", getFavoriteKeys); // Get user's favorite keys
 
 // POST routes - specific routes MUST come before parameterized routes
 router.post("/", rolePermissions.adminOrSecurity, createKey); // Create new key (admin or security)
@@ -79,6 +83,8 @@ router.post("/:keyId/manual-assign", rolePermissions.adminOrSecurity, manualAssi
 router.post("/:keyId/return", returnKey); // Return a key (any user can return their own key, security/admin can return any)
 router.post("/:keyId/collective-return", rolePermissions.adminOrSecurityOrFaculty, collectiveReturnKey); // Volunteer Key Return (security/faculty/admin)
 router.post("/:keyId/toggle-frequent", toggleFrequentlyUsed); // Toggle frequently used status
+router.post("/:keyId/add-favorite", addFavoriteKey); // Add key to favorites
+router.post("/:keyId/remove-favorite", removeFavoriteKey); // Remove key from favorites
 
 // GET routes with parameters - MUST come after specific routes
 router.get("/:keyId", getKeyById); // Get single key by ID

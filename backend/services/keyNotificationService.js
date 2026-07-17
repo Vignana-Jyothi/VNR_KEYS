@@ -108,7 +108,7 @@ export const notifyKeyTransaction = async (ctx) => {
   const facId          = faculty.facultyId  || faculty.employeeId || "N/A";
   const procDisplayRole = processorRole
     || (processor?.role === "security" ? "Security Officer" : processor?.role || "System");
-  const procDisplayName = processor ? `${procDisplayRole}: ${processor.name}` : "Faculty (self)";
+  const procDisplayName = processor ? processor.name : "Faculty (self)";
 
   const metadata = buildMetadata({ eventType, isBulk, faculty, keys, processor });
   const type     = isCheckout ? "key_taken" : "key_returned";

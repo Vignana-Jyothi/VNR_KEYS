@@ -209,3 +209,198 @@ export const sendKeyTransactionEmail = async (toEmail, recipientName, data) => {
 		throw error;
 	}
 };
+
+/**
+ * Send daily key return summary email with professional HTML formatting
+ * @param {string} toEmail - Recipient email address
+ * @param {string} recipientName - Recipient name
+ * @param {object} summaryData - Summary data
+ * @param {number} summaryData.totalUnreturnedKeys - Total count of unreturned keys
+ * @param {object} summaryData.keysByDepartment - Keys grouped by department
+ * @param {string} summaryData.generatedAt - ISO timestamp when summary was generated
+ */
+export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData) => {
+	const transporter = createTransporter();
+
+	const {
+		totalUnreturnedKeys,
+		keysByDepartment,
+		generatedAt
+	} = summaryData;
+
+	// Format the generated date
+	const generatedDate = new Date(generatedAt).toLocaleString("en-IN", {
+		timeZone: "Asia/Kolkata",
+		day: "2-digit",
+		month: "short",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: true,
+	});
+
+	// Build department rows HTML
+	const departmentRows = Object.entries(keysByDepartment).map(([department, keys]) => {
+		const keyRows = keys.map(k => `
+			<tr>
+				<td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;">
+					<span style="font-size:13px;color:#1e293b;font-weight:600;">${k.keyNumber}</span>
+				</td>
+				<td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;">
+					<span style="font-size:13px;color:#64748b;">${k.keyName}</span>
+				</td>
+				<td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;">
+					<span style="font-size:13px;color:#1e293b;">${k.holder}</span>
+				</td>
+			</tr>
+		`).join('');
+
+		return `
+			<tr>
+				<td colspan="3" style="padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;">
+					<div style="display:flex;justify-content:space-between;align-items:center;">
+						<span style="font-size:15px;font-weight:700;color:#1e293b;">${department}</span>
+						<span style="font-size:13px;color:#64748b;background:#e2e8f0;padding:4px 12px;border-radius:999px;">${keys.length} keys</span>
+					</div>
+				</td>
+			</tr>
+			${keyRows}
+		`;
+	}).join('');
+
+	const subject = `📊 Daily Key Return Summary - ${totalUnreturnedKeys} Keys Pending`;
+	const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:10px;overflow:hidden;
+                      box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e3a5f 0%,#7c3aed 100%);
+                        padding:28px 32px;text-align:center;">
+              <p style="color:#93c5fd;font-size:13px;margin:0 0 6px;letter-spacing:1px;
+                         text-transform:uppercase;">VNR VJIET Key Management</p>
+              <h1 style="color:#ffffff;font-size:24px;margin:0;font-weight:700;">
+                📊 Daily Key Return Summary
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <p style="font-size:15px;color:#374151;margin:0;">
+                Hello <strong>${recipientName}</strong>,
+              </p>
+              <p style="font-size:14px;color:#6b7280;margin:8px 0 0;">
+                Here's the daily summary of unreturned keys as of ${generatedDate}.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Summary Stats -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#f8fafc;border:1px solid #e2e8f0;
+                             border-radius:8px;overflow:hidden;">
+                <tr>
+                  <td style="padding:18px 24px;text-align:center;">
+                    <p style="font-size:32px;font-weight:700;color:#7c3aed;margin:0;">
+                      ${totalUnreturnedKeys}
+                    </p>
+                    <p style="font-size:13px;color:#64748b;margin:4px 0 0;text-transform:uppercase;letter-spacing:0.5px;">
+                      Total Unreturned Keys
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Keys by Department -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="font-size:13px;color:#64748b;font-weight:700;margin:0 0 10px;
+                         text-transform:uppercase;letter-spacing:0.5px;">
+                Keys by Department
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#ffffff;border:1px solid #e2e8f0;
+                             border-radius:8px;overflow:hidden;">
+                <thead>
+                  <tr style="background:#f1f5f9;">
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">
+                      Key Number
+                    </th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">
+                      Key Name
+                    </th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">
+                      Held By
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${departmentRows}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer note -->
+          <tr>
+            <td style="padding:24px 32px 32px;">
+              <p style="font-size:14px;color:#6b7280;margin:0;line-height:1.6;">
+                Please follow up with faculty members to ensure timely key returns.
+              </p>
+              <p style="font-size:12px;color:#9ca3af;margin:16px 0 0;line-height:1.6;">
+                This is an automated daily summary from the VNR VJIET Key Management System.
+                Please do not reply to this email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer bar -->
+          <tr>
+            <td style="background:#1e3a5f;padding:14px 32px;text-align:center;">
+              <p style="font-size:12px;color:#93c5fd;margin:0;">
+                © ${new Date().getFullYear()} VNR VJIET Key Management · All rights reserved
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+	const mailOptions = {
+		from: emailConfig.from,
+		to: toEmail,
+		subject,
+		html,
+	};
+
+	try {
+		const info = await transporter.sendMail(mailOptions);
+		console.log(`✅ Daily summary email sent to ${toEmail}:`, info.messageId);
+		return info;
+	} catch (error) {
+		console.error(`❌ Error sending daily summary email to ${toEmail}:`, error.message);
+		throw error;
+	}
+};

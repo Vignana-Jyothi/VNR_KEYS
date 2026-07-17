@@ -207,7 +207,8 @@ export const returnBulk = asyncHandler(async (req, res) => {
       const key = await Key.findById(keyId);
       if (!key) { failed.push({ keyId, reason: "Key not found" }); continue; }
       if (key.status === "available") {
-        failed.push({ keyId, keyNumber: key.keyNumber, keyName: key.keyName, reason: "Key is already available" });
+        console.log(`⚠️ Key ${key.keyNumber} is already available, skipping bulk return`);
+        // Skip already available keys without treating as failure
         continue;
       }
       // Ownership check: key must have been taken by the original faculty user

@@ -361,8 +361,14 @@ export const returnKey = asyncHandler(async (req, res) => {
     throw new NotFoundError("Key not found");
   }
 
+  // If key is already available, return success (no-op)
   if (key.status === 'available') {
-    throw new ConflictError("Key is already available");
+    console.log(`⚠️ Key ${key.keyNumber} is already available, skipping return`);
+    return res.status(200).json({
+      success: true,
+      message: `Key ${key.keyNumber} is already available`,
+      data: { key },
+    });
   }
 
   // Authorization check: Only admin and security can return keys for other users
@@ -489,8 +495,14 @@ export const collectiveReturnKey = asyncHandler(async (req, res) => {
     throw new NotFoundError("Key not found");
   }
 
+  // If key is already available, return success (no-op)
   if (key.status === 'available') {
-    throw new ConflictError("Key is already available");
+    console.log(`⚠️ Key ${key.keyNumber} is already available, skipping volunteer return`);
+    return res.status(200).json({
+      success: true,
+      message: `Key ${key.keyNumber} is already available`,
+      data: { key },
+    });
   }
 
   // Get the original user who had the key
@@ -1307,5 +1319,112 @@ export const cleanupInactiveKeys = asyncHandler(async (req, res) => {
       deletedCount: result.deletedCount,
       deletedKeys: inactiveKeys.map(key => ({ keyNumber: key.keyNumber, keyName: key.keyName }))
     }
+  });
+});
+
+/**
+ * Add a key to user's favorites
+ */
+export const addFavoriteKey = asyncHandler(async (req, res) => {
+  const { keyId } = req.params;
+  const userId = req.userId;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  const key = await Key.findById(keyId);
+  if (!key) {
+    throw new NotFoundError("Key not found");
+  }
+
+  // Check if key is already in favorites
+  if (user.favoriteKeys && user.favoriteKeys.includes(keyId)) {
+    return res.status(200).json({
+      success: true,
+      message: "Key is already in favorites",
+      data: { favoriteKeys: user.favoriteKeys },
+    });
+  }
+
+  // Add key to favorites
+  if (!user.favoriteKeys) {
+    user.favoriteKeys = [];
+  }
+  user.favoriteKeys.push(keyId);
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Key added to favorites",
+    data: { favoriteKeys: user.favoriteKeys },
+  });
+});
+
+/**
+ * Remove a key from user's favorites
+ */
+export const removeFavoriteKey = asyncHandler(async (req, res) => {
+  const { keyId } = req.params;
+  const userId = req.userId;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  // Check if key is in favorites
+  if (!user.favoriteKeys || !user.favoriteKeys.includes(keyId)) {
+    return res.status(200).json({
+      success: true,
+      message: "Key is not in favorites",
+      data: { favoriteKeys: user.favoriteKeys || [] },
+    });
+  }
+
+  // Remove key from favorites
+  user.favoriteKeys = user.favoriteKeys.filter(id => id !== keyId);
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Key removed from favorites",
+    data: { favoriteKeys: user.favoriteKeys },
+  });
+});
+
+/**
+ * Get user's favorite keys
+ */
+export const getFavoriteKeys = asyncHandler(async (req, res) => {
+  const userId = req.userId;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  if (!user.favoriteKeys || user.favoriteKeys.length === 0) {
+    return res.status(200).json({
+      success: true,
+      message: "No favorite keys found",
+      data: { keys: [], favoriteKeys: [] },
+    });
+  }
+
+  // Get the actual key objects for favorite key IDs
+  const keys = await Key.find({
+    _id: { $in: user.favoriteKeys },
+    isActive: true
+  }).populate('takenBy.userId', 'name email');
+
+  res.status(200).json({
+    success: true,
+    message: "Favorite keys retrieved successfully",
+    data: {
+      keys,
+      favoriteKeys: user.favoriteKeys,
+    },
   });
 });

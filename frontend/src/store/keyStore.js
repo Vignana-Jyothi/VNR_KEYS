@@ -41,10 +41,12 @@ export const useKeyStore = create((set, get) => ({
   keys: [],
   takenKeys: [], // Separate state for taken keys
   frequentlyUsedKeys: [], // State for user's frequently used keys
+  favoriteKeys: [], // State for user's favorite keys
   usageCounts: {}, // State for usage counts
   isLoading: false,
   isLoadingTakenKeys: false, // Separate loading state for taken keys
   isLoadingFrequentlyUsed: false, // Loading state for frequently used keys
+  isLoadingFavorites: false, // Loading state for favorite keys
   error: null,
   searchQuery: "",
   activeQRRequest: null,
@@ -196,21 +198,106 @@ export const useKeyStore = create((set, get) => ({
       const keys = backendKeys.map(transformKeyData);
       const usageCounts = response.data.data.usageCounts || {};
 
-      set({ 
-        frequentlyUsedKeys: keys, 
+      set({
+        frequentlyUsedKeys: keys,
         usageCounts,
-        isLoadingFrequentlyUsed: false 
+        isLoadingFrequentlyUsed: false
       });
       return { keys, usageCounts };
     } catch (error) {
       console.error("Error fetching frequently used keys:", error);
       const errorMessage = handleError(error);
-      set({ 
-        frequentlyUsedKeys: [], 
+      set({
+        frequentlyUsedKeys: [],
         usageCounts: {},
-        error: errorMessage, 
-        isLoadingFrequentlyUsed: false 
+        error: errorMessage,
+        isLoadingFrequentlyUsed: false
       });
+      throw error;
+    }
+  },
+
+  // Fetch user's favorite keys
+  fetchFavoriteKeys: async () => {
+    set({ isLoadingFavorites: true, error: null });
+
+    try {
+      const response = await axios.get(`${API_URL}/my-favorites`, {
+        withCredentials: true,
+      });
+
+      const backendKeys = response.data.data.keys || [];
+      const keys = backendKeys.map(transformKeyData);
+
+      set({
+        favoriteKeys: keys,
+        isLoadingFavorites: false
+      });
+      return keys;
+    } catch (error) {
+      console.error("Error fetching favorite keys:", error);
+      const errorMessage = handleError(error);
+      set({
+        favoriteKeys: [],
+        error: errorMessage,
+        isLoadingFavorites: false
+      });
+      throw error;
+    }
+  },
+
+  // Add key to favorites
+  addFavoriteKey: async (keyId) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const response = await axios.post(`${API_URL}/${keyId}/add-favorite`, {}, {
+        withCredentials: true,
+      });
+
+      const { favoriteKeys } = response.data.data;
+      const { keys } = get();
+      const favoriteKeyObjects = keys.filter(k => favoriteKeys.includes(k.id));
+
+      set({
+        favoriteKeys: favoriteKeyObjects,
+        isLoading: false
+      });
+
+      handleSuccess("Key added to favorites");
+      return { success: true };
+    } catch (error) {
+      console.error("Error adding favorite key:", error);
+      const errorMessage = handleError(error);
+      set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Remove key from favorites
+  removeFavoriteKey: async (keyId) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const response = await axios.post(`${API_URL}/${keyId}/remove-favorite`, {}, {
+        withCredentials: true,
+      });
+
+      const { favoriteKeys } = response.data.data;
+      const { keys } = get();
+      const favoriteKeyObjects = keys.filter(k => favoriteKeys.includes(k.id));
+
+      set({
+        favoriteKeys: favoriteKeyObjects,
+        isLoading: false
+      });
+
+      handleSuccess("Key removed from favorites");
+      return { success: true };
+    } catch (error) {
+      console.error("Error removing favorite key:", error);
+      const errorMessage = handleError(error);
+      set({ error: errorMessage, isLoading: false });
       throw error;
     }
   },

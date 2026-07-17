@@ -26,7 +26,8 @@ const DepartmentView = ({
   searchQuery,
   onRequestKey,
   onManualAssign,
-  onToggleFrequent,
+  onToggleFavorite,
+  favoriteKeys = [],
   onBack,
   // Bulk selection (optional — only passed from faculty AllKeysPage)
   selectedIds   = null,   // Set<string> | null
@@ -128,6 +129,9 @@ const DepartmentView = ({
                     variant="default"
                     onRequestKey={onRequestKey}
                     onManualAssign={onManualAssign}
+                    onToggleFavorite={onToggleFavorite}
+                    isFavorite={favoriteKeys.some(fk => fk.id === key.id)}
+                    isSelected={isSelected}
                   />
                 </div>
               </div>

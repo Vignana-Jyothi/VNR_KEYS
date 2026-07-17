@@ -1,7 +1,7 @@
 import { Notification } from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import Key from "../models/key.model.js";
-import { sendNotificationEmail } from "../nodemailer/emails.js";
+import { sendNotificationEmail, sendDailySummaryEmail } from "../nodemailer/emails.js";
 
 /**
  * Notification Service
@@ -118,14 +118,28 @@ export const sendEmailNotification = async (notification) => {
       return;
     }
 
-    await sendNotificationEmail(
-      notification.recipient.email,
-      notification.recipient.name,
-      notification.title,
-      notification.message,
-      notification.type,
-      notification.metadata
-    );
+    // Use specialized email formatter for daily key summary
+    if (notification.type === 'key_summary' && notification.metadata) {
+      await sendDailySummaryEmail(
+        notification.recipient.email,
+        notification.recipient.name,
+        {
+          totalUnreturnedKeys: notification.metadata.totalKeys,
+          keysByDepartment: notification.metadata.departmentSummary,
+          generatedAt: notification.metadata.generatedAt
+        }
+      );
+    } else {
+      // Use generic notification email for other types
+      await sendNotificationEmail(
+        notification.recipient.email,
+        notification.recipient.name,
+        notification.title,
+        notification.message,
+        notification.type,
+        notification.metadata
+      );
+    }
 
     console.log(`📧 Email notification sent to ${notification.recipient.email}`);
   } catch (error) {

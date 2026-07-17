@@ -93,6 +93,10 @@ const userSchema = new mongoose.Schema(
       of: Number, // keyId -> usage count
       default: {},
     },
+    favoriteKeys: {
+      type: [String], // Array of key IDs (as strings)
+      default: [],
+    },
   },
   { timestamps: true }
 );

@@ -6,15 +6,18 @@ const SearchResults = ({
   keys, 
   onRequestKey, 
   onCollectKey, 
-  onToggleFrequent,
+  onToggleFavorite,
+  favoriteKeys = [],
   onReturnKey,
   onManualAssign,
+  selectedIds = null,
+  onToggleSelect = null,
   userRole = "faculty", // "faculty" or "security"
   variant = "all" // "all" or "taken"
 }) => {
   // Filter keys based on search query
-  const filteredKeys = keys.filter(key => 
-    searchQuery === "" || 
+  const filteredKeys = keys.filter(key =>
+    searchQuery === "" ||
     key.keyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     key.keyNumber?.toString().includes(searchQuery) ||
     key.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -22,6 +25,8 @@ const SearchResults = ({
     key.block?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     key.location?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const bulkEnabled = selectedIds !== null && onToggleSelect !== null;
 
   // Don't render if no search query
   if (!searchQuery.trim()) {
@@ -68,18 +73,51 @@ const SearchResults = ({
               }
             }
 
+            const isSelected = bulkEnabled && selectedIds.has(key.id);
+            const isAvailable = key.status === "available";
+            const showCheckbox = bulkEnabled && isAvailable;
+
             return (
-              <KeyCard
-                key={key.id}
-                keyData={key}
-                variant={keyVariant}
-                onRequestKey={onRequestKey}
-                onCollectKey={onCollectKey}
-                onToggleFrequent={onToggleFrequent}
-                onReturnKey={onReturnKey}
-                onManualAssign={onManualAssign}
-                userRole={userRole}
-              />
+              <div key={key.id} className="relative">
+                {/* Checkbox — only on available keys when bulk mode active */}
+                {showCheckbox && (
+                  <button
+                    onClick={() => onToggleSelect(key.id)}
+                    className={`absolute top-3 right-3 z-10 w-5 h-5 rounded border-2
+                      flex items-center justify-center flex-shrink-0 transition-colors ${
+                        isSelected
+                          ? "bg-indigo-500 border-indigo-500"
+                          : "border-gray-500 bg-gray-800/80 hover:border-indigo-400"
+                      }`}
+                    title={isSelected ? "Deselect" : "Select for bulk checkout"}
+                  >
+                    {isSelected && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+
+                {/* Highlight ring when selected */}
+                <div className={`rounded-2xl transition-all duration-200 ${
+                  isSelected ? "ring-2 ring-indigo-500/60" : ""
+                }`}>
+                  <KeyCard
+                    key={key.id}
+                    keyData={key}
+                    variant={keyVariant}
+                    onRequestKey={onRequestKey}
+                    onCollectKey={onCollectKey}
+                    onToggleFavorite={onToggleFavorite}
+                    isFavorite={favoriteKeys.some(fk => fk.id === key.id)}
+                    isSelected={isSelected}
+                    onReturnKey={onReturnKey}
+                    onManualAssign={onManualAssign}
+                    userRole={userRole}
+                  />
+                </div>
+              </div>
             );
           })}
         </div>

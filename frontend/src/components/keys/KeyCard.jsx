@@ -6,6 +6,7 @@ import {
   QrCode,
   CheckCircle,
   TrendingUp,
+  Star,
 } from "lucide-react";
 import QRCode from "react-qr-code";
 import { useState, useEffect } from "react";
@@ -21,9 +22,12 @@ const KeyCard = ({
   onCollectKey,
   onReturnKey,
   onManualAssign,
+  onToggleFavorite,
   showQR = false,
   qrData = null,
   usageCount,
+  isFavorite = false,
+  isSelected = false,
 }) => {
   const { user } = useAuthStore();
   const [showQRModal, setShowQRModal] = useState(false);
@@ -169,6 +173,12 @@ const KeyCard = ({
     }
   };
 
+  const handleToggleFavorite = () => {
+    if (onToggleFavorite) {
+      onToggleFavorite(keyData.id);
+    }
+  };
+
   return (
     <>
       <motion.div
@@ -201,6 +211,22 @@ const KeyCard = ({
               </div>
             )}
           </div>
+          {/* Star icon for favorites */}
+          {onToggleFavorite && (
+            <button
+              onClick={handleToggleFavorite}
+              className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors"
+              title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Star
+                className={`w-5 h-5 transition-colors ${
+                  isFavorite
+                    ? "text-yellow-400 fill-yellow-400"
+                    : "text-gray-400 hover:text-yellow-400"
+                }`}
+              />
+            </button>
+          )}
         </div>
 
         {/* Location */}
@@ -256,10 +282,11 @@ const KeyCard = ({
         {/* Action Buttons */}
         {/* Action Buttons */}
         <div className="flex gap-2 mt-4">
-          {/* Faculty: Generate QR when available */}
+          {/* Faculty: Generate QR when available (hide when selected for bulk) */}
           {user?.role === "faculty" &&
             variant === "default" &&
-            keyData.status === "available" && (
+            keyData.status === "available" &&
+            !isSelected && (
               <button
                 onClick={handleRequestKey}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"

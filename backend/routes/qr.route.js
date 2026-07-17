@@ -142,12 +142,31 @@ router.post("/batch-return", rolePermissions.adminOrSecurity, asyncHandler(async
     throw new NotFoundError("One or more keys not found");
   }
 
-  // Validate key statuses
+  // Validate key statuses - filter out already available keys instead of throwing error
   const unavailableKeys = keys.filter(key => key.status === 'available');
   if (unavailableKeys.length > 0) {
-    throw new ConflictError(
-      `Some keys are already available: ${unavailableKeys.map(k => k.keyNumber).join(', ')}`
-    );
+    console.log(`⚠️ Some keys are already available and will be skipped: ${unavailableKeys.map(k => k.keyNumber).join(', ')}`);
+    // Remove already available keys from the list to process
+    keys.length = 0;
+    keys.push(...keys.filter(key => key.status === 'unavailable'));
+  }
+
+  // If no keys to process after filtering, return success with info
+  if (keys.length === 0) {
+    return res.status(200).json({
+      success: true,
+      message: 'All keys are already available',
+      data: {
+        keys: [],
+        skippedKeys: unavailableKeys.map(k => ({
+          keyNumber: k.keyNumber,
+          keyId: k._id,
+          reason: 'already available'
+        })),
+        returnId: parsedData.returnId,
+        processedAt: new Date().toISOString()
+      }
+    });
   }
 
   // Process returns for all keys
