@@ -25,7 +25,7 @@ vnr-keys/
 the server at `/etc/nginx/sites-available/`, since that Nginx is managing SSL
 and routing for all your VJ apps, not just this one.
 
-## How the branch → URL mapping works
+## How the branch → URL mapping works.
 
 | Branch | Workflow | GitHub Environment | Containers | Host ports | Public URL |
 |---|---|---|---|---|---|
