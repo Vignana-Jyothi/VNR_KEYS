@@ -24,7 +24,7 @@ ENV VITE_API_URL=$VITE_API_URL \
 
 RUN npm run build
 
-# Stage 2: Serve the built static files with nginx.
+# Stage 2: Serve the built static files with nginx
 FROM nginx:alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
