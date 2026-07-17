@@ -57,6 +57,15 @@ export const verifyToken = async (req, res, next) => {
 		if (process.env.NODE_ENV === 'development') {
 			console.log(`✅ Token verified for user: ${decoded.userId} (${req.userRole})`);
 		}
+
+		// Restrict HOD users from accessing the application
+		if (req.userRole === 'hod') {
+			return res.status(403).json({
+				success: false,
+				message: "Your account is registered as a Head of Department. This role is configured only to receive department summary emails. No web portal is available for this role."
+			});
+		}
+
 		next();
 	} catch (error) {
 		// SECURITY: Do not log detailed error messages in production

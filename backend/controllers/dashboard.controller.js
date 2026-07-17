@@ -258,23 +258,23 @@ export const createUser = asyncHandler(async (req, res) => {
 	}
 
 	// Validate role
-	const validRoles = ['admin', 'faculty', 'security'];
+	const validRoles = ['admin', 'faculty', 'security', 'hod'];
 	if (!validRoles.includes(role)) {
 		return res.status(400).json({
 			success: false,
-			message: "Invalid role. Must be one of: admin, faculty, security"
+			message: "Invalid role. Must be one of: admin, faculty, security, hod"
 		});
 	}
 
-	// Validate department for faculty
-	if (role === 'faculty' && !department) {
+	// Validate department for faculty and HOD
+	if ((role === 'faculty' || role === 'hod') && !department) {
 		return res.status(400).json({
 			success: false,
 			message: `Department is required for ${role} users`
 		});
 	}
 
-	// Validate facultyId for faculty
+	// Validate facultyId for faculty (not required for HOD)
 	if (role === 'faculty' && !facultyId) {
 		return res.status(400).json({
 			success: false,
@@ -302,12 +302,23 @@ export const createUser = asyncHandler(async (req, res) => {
 		}
 	}
 
+	// Check if HOD already exists for the department (one HOD per department)
+	if (role === 'hod') {
+		const existingHOD = await User.findOne({ role: 'hod', department });
+		if (existingHOD) {
+			return res.status(409).json({
+				success: false,
+				message: `A HOD is already assigned for the ${department} department. Please edit the existing HOD instead.`
+			});
+		}
+	}
+
 	// Create new user
 	const newUser = new User({
 		name: name.trim(),
 		email: email.trim().toLowerCase(),
 		role,
-		department: role === 'faculty' ? department : undefined,
+		department: (role === 'faculty' || role === 'hod') ? department : undefined,
 		facultyId: role === 'faculty' ? facultyId.trim() : undefined,
 		googleId: `manual_${Date.now()}_${Math.random()}`, // Temporary ID for manually created users
 		provider: 'google',
@@ -354,7 +365,7 @@ export const createUser = asyncHandler(async (req, res) => {
 		message: "User created successfully",
 		data: {
 			user: transformedUser,
-			note: "User needs to login with Google to complete their account setup"
+			note: role === 'hod' ? "HOD users receive department summary emails and do not have dashboard access" : "User needs to login with Google to complete their account setup"
 		}
 	});
 });
@@ -364,18 +375,18 @@ export const createUser = asyncHandler(async (req, res) => {
  */
 export const updateUser = asyncHandler(async (req, res) => {
 	const { userId } = req.params;
-	const { name, email, role } = req.body;
+	const { name, email, role, department, facultyId } = req.body;
 
 	// Validate input
-	if (!name && !email && !role) {
+	if (!name && !email && !role && !department && !facultyId) {
 		return res.status(400).json({
 			success: false,
-			message: "At least one field (name, email, or role) must be provided"
+			message: "At least one field must be provided"
 		});
 	}
 
 	// Validate role
-	const validRoles = ['admin', 'faculty', 'security'];
+	const validRoles = ['admin', 'faculty', 'security', 'hod'];
 	if (role && !validRoles.includes(role)) {
 		return res.status(400).json({
 			success: false,
@@ -399,6 +410,36 @@ export const updateUser = asyncHandler(async (req, res) => {
 		});
 	}
 
+	// Check HOD uniqueness when changing to HOD or updating HOD department
+	if (role === 'hod' || (user.role === 'hod' && department && department !== user.department)) {
+		const targetDepartment = department || user.department;
+		const existingHOD = await User.findOne({ 
+			role: 'hod', 
+			department: targetDepartment,
+			_id: { $ne: userId }
+		});
+		if (existingHOD) {
+			return res.status(409).json({
+				success: false,
+				message: `A HOD is already assigned for the ${targetDepartment} department. Please edit the existing HOD instead.`
+			});
+		}
+	}
+
+	// Validate facultyId uniqueness when updating faculty ID
+	if (facultyId && facultyId !== user.facultyId) {
+		const existingFacultyId = await User.findOne({ 
+			facultyId: facultyId.trim(),
+			_id: { $ne: userId }
+		});
+		if (existingFacultyId) {
+			return res.status(409).json({
+				success: false,
+				message: `Faculty ID already exists`
+			});
+		}
+	}
+
 	// Prepare update object
 	const updateData = {};
 	const unsetData = {};
@@ -410,9 +451,23 @@ export const updateUser = asyncHandler(async (req, res) => {
 
 		// Clear faculty-specific fields when changing from faculty to other roles
 		if (role !== 'faculty') {
-			unsetData.department = "";
 			unsetData.facultyId = "";
 		}
+
+		// Clear department when changing to roles that don't require it
+		if (role !== 'faculty' && role !== 'hod') {
+			unsetData.department = "";
+		}
+	}
+
+	// Update department for faculty and HOD
+	if (department && (user.role === 'faculty' || user.role === 'hod' || role === 'faculty' || role === 'hod')) {
+		updateData.department = department;
+	}
+
+	// Update facultyId for faculty
+	if (facultyId && (user.role === 'faculty' || role === 'faculty')) {
+		updateData.facultyId = facultyId.trim();
 	}
 
 	// Build the update query

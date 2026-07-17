@@ -12,10 +12,10 @@ import { checkAndSendKeyReminders, cleanupExpiredNotifications, createDailySumma
 export const initializeScheduledJobs = () => {
   console.log('🕐 Initializing scheduled jobs...');
 
-  // Job 1: Daily key reminders at 5:00 PM (17:00)
-  // Cron expression: '0 17 * * *' means "at 17:00 (5:00 PM) every day"
-  const keyReminderJob = cron.schedule('0 17 * * *', async () => {
-    console.log('🔔 Running daily key reminder job at 5:00 PM...');
+  // Job 1: Daily key reminders at 4:55 PM (16:55)
+  // Cron expression: '55 16 * * *' means "at 16:55 (4:55 PM) every day"
+  const keyReminderJob = cron.schedule('55 16 * * *', async () => {
+    console.log('🔔 Running daily key reminder job at 4:55 PM...');
     try {
       const result = await checkAndSendKeyReminders();
       console.log(`✅ Key reminder job completed:`, result);
@@ -27,12 +27,12 @@ export const initializeScheduledJobs = () => {
     timezone: "Asia/Kolkata" // Indian Standard Time
   });
 
-  // Job 2: Daily summary notifications at 5:20 PM (17:20)
-  // Cron expression: '20 17 * * *' means "at 17:20 (5:20 PM) every day"
-  const summaryNotificationJob = cron.schedule('20 17 * * *', async () => {
-    console.log('📊 Running daily summary notification job at 5:20 PM...');
+  // Job 2: Daily summary notifications at 5:10 PM (17:10)
+  // Cron expression: '10 17 * * *' means "at 17:10 (5:10 PM) every day"
+  const summaryNotificationJob = cron.schedule('10 17 * * *', async () => {
+    console.log('📊 Running daily summary notification job at 5:10 PM...');
     try {
-      const result = await createDailySummaryNotifications();
+      const result = await createDailySummaryNotifications(null, false);
       console.log(`✅ Summary notification job completed:`, result);
     } catch (error) {
       console.error('❌ Error in summary notification job:', error);
@@ -41,7 +41,7 @@ export const initializeScheduledJobs = () => {
     scheduled: true,
     timezone: "Asia/Kolkata"
   });
-
+  
   // Job 2: Daily cleanup of expired notifications at midnight
   // Cron expression: '0 0 * * *' means "at 00:00 (midnight) every day"
   const cleanupJob = cron.schedule('0 0 * * *', async () => {
@@ -79,7 +79,8 @@ export const initializeScheduledJobs = () => {
   });
 
   console.log('✅ Scheduled jobs initialized:');
-  console.log('   📅 Daily key reminders: 5:20 PM IST');
+  console.log('   📅 Daily key reminders: 4:55 PM IST');
+  console.log('   📊 Daily summary notifications: 5:10 PM IST');
   console.log('   🧹 Daily cleanup: 12:00 AM IST');
   if (process.env.NODE_ENV === 'development') {
     console.log('   🧪 Test job: Every minute (dev only)');
@@ -87,6 +88,7 @@ export const initializeScheduledJobs = () => {
 
   return {
     keyReminderJob,
+    summaryNotificationJob,
     cleanupJob,
     testJob,
     weeklyJob
@@ -148,6 +150,21 @@ export const triggerCleanupJob = async () => {
     return result;
   } catch (error) {
     console.error('❌ Error in manual cleanup job:', error);
+    throw error;
+  }
+};
+
+/**
+ * Manually trigger daily summary job (for testing)
+ */
+export const triggerDailySummaryJob = async () => {
+  console.log('📊 Manually triggering daily summary job...');
+  try {
+    const result = await createDailySummaryNotifications(null, false);
+    console.log('✅ Manual daily summary job completed:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error in manual daily summary job:', error);
     throw error;
   }
 };

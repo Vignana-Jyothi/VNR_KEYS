@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["faculty", "security", "admin", "pending"],
+      enum: ["faculty", "security", "admin", "hod", "pending"],
       default: "pending", // Default for new users who need to complete registration
     },
     department: {
@@ -51,8 +51,8 @@ const userSchema = new mongoose.Schema(
         "VJ_Hub"
       ],
       required: function() {
-        // Department is required only for faculty
-        return this.role === "faculty";
+        // Department is required for faculty and HOD
+        return this.role === "faculty" || this.role === "hod";
       },
     },
     facultyId: {

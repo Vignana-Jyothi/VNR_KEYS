@@ -101,6 +101,7 @@ const ManageUsersPage = () => {
       case 'admin': return 'bg-red-500';
       case 'faculty': return 'bg-blue-500';
       case 'security': return 'bg-green-500';
+      case 'hod': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
   };
@@ -144,6 +145,7 @@ const ManageUsersPage = () => {
                 <option value="admin">Admin</option>
                 <option value="faculty">Faculty</option>
                 <option value="security">Security</option>
+                <option value="hod">HOD</option>
               </select>
             </div>
             <button
@@ -326,6 +328,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
               <option value="faculty">Faculty</option>
               <option value="security">Security</option>
               <option value="admin">Admin</option>
+              <option value="hod">HOD</option>
             </select>
           </div>
           <div className="flex justify-end space-x-3 pt-4">
@@ -401,7 +404,7 @@ const AddUserModal = ({ onClose, onSave }) => {
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (formData.role === 'faculty' && !formData.department) {
+    if ((formData.role === 'faculty' || formData.role === 'hod') && !formData.department) {
       newErrors.department = `Department is required for ${formData.role}`;
     }
     if (formData.role === 'faculty' && !formData.facultyId.trim()) {
@@ -472,10 +475,11 @@ const AddUserModal = ({ onClose, onSave }) => {
               <option value="faculty">Faculty</option>
               <option value="security">Security</option>
               <option value="admin">Admin</option>
+              <option value="hod">HOD</option>
             </select>
           </div>
 
-          {formData.role === 'faculty' && (
+          {(formData.role === 'faculty' || formData.role === 'hod') && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Department *</label>
               <select
