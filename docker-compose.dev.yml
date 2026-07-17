@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vnrkeys-backend-dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    ports:
+      - "6213:5000"
+    networks:
+      - vnrkeys-dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
+        VITE_APP_NAME: ${VITE_APP_NAME}
+        VITE_APP_VERSION: ${VITE_APP_VERSION}
+        VITE_FRONTEND_URL: ${VITE_FRONTEND_URL}
+    container_name: vnrkeys-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "6210:80"
+    depends_on:
+      - backend
+    networks:
+      - vnrkeys-dev
+
+networks:
+  vnrkeys-dev:
+    driver: bridge
