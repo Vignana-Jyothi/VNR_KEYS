@@ -55,8 +55,9 @@ router.post(
   "/resend-daily-summary",
   rolePermissions.adminOrSecurity,
   asyncHandler(async (req, res) => {
-    // Generate and send notifications ONLY to the requester
-    const result = await createDailySummaryNotifications(req.userId);
+    // Generate and send notifications to ALL recipients (Admin, Security, HOD)
+    // Pass userId for logging context but sendToAll=true to send to everyone
+    const result = await createDailySummaryNotifications(req.userId, true);
 
     if (!result) {
       return res.status(500).json({
@@ -67,7 +68,7 @@ router.post(
 
     res.status(200).json({
       success: true,
-      message: `Daily summary sent — ${result.totalUnreturnedKeys ?? 0} unreturned key(s) at this time`,
+      message: `Daily summary sent to ${result.totalNotifications} recipients — ${result.totalUnreturnedKeys ?? 0} unreturned key(s) at this time`,
       data: result
     });
   })

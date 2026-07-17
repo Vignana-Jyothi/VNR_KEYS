@@ -218,6 +218,7 @@ export const sendKeyTransactionEmail = async (toEmail, recipientName, data) => {
  * @param {number} summaryData.totalUnreturnedKeys - Total count of unreturned keys
  * @param {object} summaryData.keysByDepartment - Keys grouped by department
  * @param {string} summaryData.generatedAt - ISO timestamp when summary was generated
+ * @param {string} summaryData.department - Optional department for HOD-specific summaries
  */
 export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData) => {
 	const transporter = createTransporter();
@@ -225,8 +226,15 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
 	const {
 		totalUnreturnedKeys,
 		keysByDepartment,
-		generatedAt
+		generatedAt,
+		department = null // Optional department for HOD-specific summaries
 	} = summaryData;
+
+	console.log(`📧 sendDailySummaryEmail called:`);
+	console.log(`   To: ${toEmail}`);
+	console.log(`   Recipient: ${recipientName}`);
+	console.log(`   Department: ${department || 'All departments'}`);
+	console.log(`   Total keys: ${totalUnreturnedKeys}`);
 
 	// Format the generated date
 	const generatedDate = new Date(generatedAt).toLocaleString("en-IN", {
@@ -240,7 +248,7 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
 	});
 
 	// Build department rows HTML
-	const departmentRows = Object.entries(keysByDepartment).map(([department, keys]) => {
+	const departmentRows = Object.entries(keysByDepartment).map(([dept, keys]) => {
 		const keyRows = keys.map(k => `
 			<tr>
 				<td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;">
@@ -259,7 +267,7 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
 			<tr>
 				<td colspan="3" style="padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;">
 					<div style="display:flex;justify-content:space-between;align-items:center;">
-						<span style="font-size:15px;font-weight:700;color:#1e293b;">${department}</span>
+						<span style="font-size:15px;font-weight:700;color:#1e293b;">${dept}</span>
 						<span style="font-size:13px;color:#64748b;background:#e2e8f0;padding:4px 12px;border-radius:999px;">${keys.length} keys</span>
 					</div>
 				</td>
@@ -268,7 +276,18 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
 		`;
 	}).join('');
 
-	const subject = `📊 Daily Key Return Summary - ${totalUnreturnedKeys} Keys Pending`;
+	const subject = department 
+		? `📊 Daily Key Return Summary - ${department} - ${totalUnreturnedKeys} Keys Pending`
+		: `📊 Daily Key Return Summary - ${totalUnreturnedKeys} Keys Pending`;
+	
+	const summaryTitle = department 
+		? `📊 Daily Key Return Summary - ${department} Department`
+		: `📊 Daily Key Return Summary`;
+	
+	const summaryDescription = department
+		? `Here's the daily summary of unreturned keys for the ${department} department as of ${generatedDate}.`
+		: `Here's the daily summary of unreturned keys as of ${generatedDate}.`;
+
 	const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -292,7 +311,7 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
               <p style="color:#93c5fd;font-size:13px;margin:0 0 6px;letter-spacing:1px;
                          text-transform:uppercase;">VNR VJIET Key Management</p>
               <h1 style="color:#ffffff;font-size:24px;margin:0;font-weight:700;">
-                📊 Daily Key Return Summary
+                ${summaryTitle}
               </h1>
             </td>
           </tr>
@@ -304,7 +323,7 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
                 Hello <strong>${recipientName}</strong>,
               </p>
               <p style="font-size:14px;color:#6b7280;margin:8px 0 0;">
-                Here's the daily summary of unreturned keys as of ${generatedDate}.
+                ${summaryDescription}
               </p>
             </td>
           </tr>
@@ -334,7 +353,7 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
             <td style="padding:20px 32px 0;">
               <p style="font-size:13px;color:#64748b;font-weight:700;margin:0 0 10px;
                          text-transform:uppercase;letter-spacing:0.5px;">
-                Keys by Department
+                ${department ? 'Keys' : 'Keys by Department'}
               </p>
               <table width="100%" cellpadding="0" cellspacing="0"
                      style="background:#ffffff;border:1px solid #e2e8f0;
@@ -363,7 +382,9 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
           <tr>
             <td style="padding:24px 32px 32px;">
               <p style="font-size:14px;color:#6b7280;margin:0;line-height:1.6;">
-                Please follow up with faculty members to ensure timely key returns.
+                ${department 
+                  ? 'Please follow up with faculty members in your department to ensure timely key returns.'
+                  : 'Please follow up with faculty members to ensure timely key returns.'}
               </p>
               <p style="font-size:12px;color:#9ca3af;margin:16px 0 0;line-height:1.6;">
                 This is an automated daily summary from the VNR VJIET Key Management System.
@@ -397,10 +418,11 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
 
 	try {
 		const info = await transporter.sendMail(mailOptions);
-		console.log(`✅ Daily summary email sent to ${toEmail}:`, info.messageId);
+		console.log(`✅ Daily summary email sent successfully to ${toEmail}:`, info.messageId);
 		return info;
 	} catch (error) {
 		console.error(`❌ Error sending daily summary email to ${toEmail}:`, error.message);
+		console.error(`   Error details:`, error);
 		throw error;
 	}
 };

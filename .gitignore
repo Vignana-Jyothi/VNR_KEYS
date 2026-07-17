@@ -67,3 +67,12 @@ temp/
 # Backup files
 *.bak
 *.backup
+# Env files - generated at deploy time by CI, never commit real secrets
+.env
+.env.prod
+.env.dev
+.env.local
+
+node_modules/
+dist/
+*.log

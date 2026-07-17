@@ -118,19 +118,27 @@ export const sendEmailNotification = async (notification) => {
       return;
     }
 
+    console.log(`📧 Preparing to send email to ${notification.recipient.email} (${notification.recipient.role})...`);
+
     // Use specialized email formatter for daily key summary
     if (notification.type === 'key_summary' && notification.metadata) {
+      console.log(`   Type: Daily summary email`);
+      console.log(`   Department: ${notification.metadata.department || 'All departments'}`);
+      console.log(`   Total keys: ${notification.metadata.totalKeys}`);
+      
       await sendDailySummaryEmail(
         notification.recipient.email,
         notification.recipient.name,
         {
           totalUnreturnedKeys: notification.metadata.totalKeys,
           keysByDepartment: notification.metadata.departmentSummary,
-          generatedAt: notification.metadata.generatedAt
+          generatedAt: notification.metadata.generatedAt,
+          department: notification.metadata.department || null // Pass department for HOD-specific summaries
         }
       );
     } else {
       // Use generic notification email for other types
+      console.log(`   Type: Generic notification email`);
       await sendNotificationEmail(
         notification.recipient.email,
         notification.recipient.name,
@@ -141,9 +149,11 @@ export const sendEmailNotification = async (notification) => {
       );
     }
 
-    console.log(`📧 Email notification sent to ${notification.recipient.email}`);
+    console.log(`✅ Email notification sent successfully to ${notification.recipient.email}`);
   } catch (error) {
-    console.error("❌ Error sending email notification:", error);
+    console.error(`❌ Error sending email notification to ${notification?.recipient?.email}:`, error.message);
+    console.error(`   Error stack:`, error.stack);
+    throw error; // Re-throw to allow caller to handle the error
   }
 };
 
@@ -742,11 +752,14 @@ export const cleanupExpiredNotifications = async () => {
 
 /**
  * Create daily summary notifications for security and admin
+ * @param {string} userId - Optional: if provided, send only to this user (for manual resend)
+ * @param {boolean} sendToAll - If true, send to all recipients regardless of userId (default: false)
  * @returns {Promise<Object>} Summary of notifications sent
  */
-export const createDailySummaryNotifications = async (userId = null) => {
+export const createDailySummaryNotifications = async (userId = null, sendToAll = false) => {
   try {
-    console.log('🔍 Generating daily summary at 5:20 PM...');
+    console.log('🔍 Starting daily summary generation...');
+    console.log(`📋 Mode: ${sendToAll ? 'Send to all recipients' : (userId ? 'Send to requester only' : 'Send to all recipients (scheduled)')}`);
 
     // Find all unreturned keys with their holders
     const unreturnedKeys = await Key.find({
@@ -788,8 +801,9 @@ export const createDailySummaryNotifications = async (userId = null) => {
 
     const notifications = [];
 
-    // 🔹 If userId is provided, send only to that user
-    if (userId) {
+    // 🔹 If userId is provided AND sendToAll is false, send only to that user
+    if (userId && !sendToAll) {
+      console.log(`📤 Sending daily summary to requester only: ${userId}`);
       const user = await User.findById(userId);
       if (!user) throw new Error(`Requester user not found: ${userId}`);
 
@@ -817,6 +831,7 @@ export const createDailySummaryNotifications = async (userId = null) => {
           realTime: true
         });
         notifications.push(notification);
+        console.log(`✅ Daily summary sent to requester: ${user.email}`);
       } catch (err) {
         console.error(`❌ Failed to create daily summary notification for user ${user._id}:`, err);
       }
@@ -829,13 +844,22 @@ export const createDailySummaryNotifications = async (userId = null) => {
     }
 
     // 🔹 Else, fallback to original logic (all security + admin users)
-    const [securityUsers, adminUsers] = await Promise.all([
+    console.log('👥 Fetching recipients from database...');
+    const [securityUsers, adminUsers, hodUsers] = await Promise.all([
       User.find({ role: 'security', isVerified: true }),
-      User.find({ role: 'admin', isVerified: true })
+      User.find({ role: 'admin', isVerified: true }),
+      User.find({ role: 'hod', isVerified: true })
     ]);
 
-    // Send to security users
+    console.log(`📊 Recipients found:`);
+    console.log(`   Admin: ${adminUsers?.length || 0}`);
+    console.log(`   Security: ${securityUsers?.length || 0}`);
+    console.log(`   HOD: ${hodUsers?.length || 0}`);
+
+    // Send to security users (college-wide summary)
+    console.log('📧 Sending emails to Security users...');
     for (const user of securityUsers || []) {
+      console.log(`   - Sending to ${user.name} (${user.email})...`);
       const notificationData = {
         recipient: {
           userId: user._id,
@@ -860,13 +884,16 @@ export const createDailySummaryNotifications = async (userId = null) => {
           realTime: true
         });
         notifications.push(notification);
+        console.log(`   ✓ Sent to ${user.email}`);
       } catch (err) {
-        console.error(`❌ Failed to create daily summary notification for security user ${user._id}:`, err);
+        console.error(`   ✗ Failed to send to ${user.email}:`, err.message);
       }
     }
 
-    // Send to admin users
+    // Send to admin users (college-wide summary)
+    console.log('📧 Sending emails to Admin users...');
     for (const user of adminUsers || []) {
+      console.log(`   - Sending to ${user.name} (${user.email})...`);
       const notificationData = {
         recipient: {
           userId: user._id,
@@ -891,17 +918,87 @@ export const createDailySummaryNotifications = async (userId = null) => {
           realTime: true
         });
         notifications.push(notification);
+        console.log(`   ✓ Sent to ${user.email}`);
       } catch (err) {
-        console.error(`❌ Failed to create daily summary notification for admin user ${user._id}:`, err);
+        console.error(`   ✗ Failed to send to ${user.email}:`, err.message);
       }
     }
 
-    console.log(`✅ Sent daily summary to ${securityUsers.length} security and ${adminUsers.length} admin users`);
+    // Send to HOD users (department-specific summary)
+    console.log('📧 Sending emails to HOD users...');
+    let hodNotificationCount = 0;
+    for (const hodUser of hodUsers || []) {
+      const hodDepartment = hodUser.department;
+      
+      if (!hodDepartment) {
+        console.warn(`   ⚠️ HOD user ${hodUser.name} has no department assigned, skipping`);
+        continue;
+      }
+
+      // Filter keys for this HOD's department only
+      const departmentKeys = keysByDepartment[hodDepartment] || [];
+      const departmentKeyCount = departmentKeys.length;
+
+      if (departmentKeyCount === 0) {
+        console.log(`   ℹ️ No keys pending for ${hodDepartment} department, skipping HOD notification`);
+        continue;
+      }
+
+      console.log(`   - Sending to ${hodUser.name} (${hodUser.email}) for ${hodDepartment} department...`);
+
+      // Generate department-specific summary message
+      let hodSummaryMessage = `Daily Key Return Summary - ${hodDepartment} Department\n\n`;
+      hodSummaryMessage += `Total Unreturned Keys: ${departmentKeyCount}\n\n`;
+      hodSummaryMessage += `${hodDepartment} Department Keys:\n`;
+      departmentKeys.forEach(k => {
+        hodSummaryMessage += `• Key ${k.keyNumber} (${k.keyName}) - Held by ${k.holder}\n`;
+      });
+
+      const notificationData = {
+        recipient: {
+          userId: hodUser._id,
+          name: hodUser.name,
+          email: hodUser.email,
+          role: 'hod',
+        },
+        title: `Daily Key Return Summary - ${hodDepartment} - ${departmentKeyCount} Keys Pending`,
+        message: hodSummaryMessage,
+        type: 'key_summary',
+        priority: 'medium',
+        metadata: {
+          totalKeys: departmentKeyCount,
+          departmentSummary: { [hodDepartment]: departmentKeys },
+          department: hodDepartment,
+          generatedAt: new Date().toISOString()
+        }
+      };
+
+      try {
+        const notification = await createAndSendNotification(notificationData, {
+          email: true,
+          realTime: false // HOD users don't have dashboard access, no real-time needed
+        });
+        notifications.push(notification);
+        hodNotificationCount++;
+        console.log(`   ✓ Sent to ${hodUser.email} (${hodDepartment})`);
+      } catch (err) {
+        console.error(`   ✗ Failed to send to ${hodUser.email}:`, err.message);
+      }
+    }
+
+    console.log(`✅ Daily summary completed successfully:`);
+    console.log(`   - Security: ${securityUsers?.length || 0} recipients`);
+    console.log(`   - Admin: ${adminUsers?.length || 0} recipients`);
+    console.log(`   - HOD: ${hodNotificationCount} recipients`);
+    console.log(`   - Total notifications: ${notifications.length}`);
+    console.log(`   - Total unreturned keys: ${totalUnreturnedKeys}`);
+    
     return {
       totalNotifications: notifications.length,
       totalUnreturnedKeys,
-      securityRecipients: securityUsers.length,
-      adminRecipients: adminUsers.length
+      securityRecipients: securityUsers?.length || 0,
+      adminRecipients: adminUsers?.length || 0,
+      hodRecipients: hodNotificationCount
     };
   } catch (error) {
     console.error("❌ Error creating daily summary notifications:", error);

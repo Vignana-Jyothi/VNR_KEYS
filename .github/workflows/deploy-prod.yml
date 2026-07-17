@@ -1,0 +1,60 @@
+name: Deploy VNR Keys - Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Build & Deploy (Production)
+    runs-on: gamma   # add a label here if this repo needs a specific box, e.g. [self-hosted, gamma]
+    environment: keys-prod
+    concurrency:
+      group: vnrkeys-prod-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate .env.prod from GitHub Secrets
+        run: |
+          cat > .env.prod << EOF
+          NODE_ENV=production
+          PORT=5000
+          MONGO_URI=${{ secrets.MONGO_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          CLIENT_URL=${{ secrets.CLIENT_URL }}
+          BACKEND_URL=${{ secrets.BACKEND_URL }}
+          EMAIL_HOST=${{ secrets.EMAIL_HOST }}
+          EMAIL_PORT=${{ secrets.EMAIL_PORT }}
+          EMAIL_SECURE=${{ secrets.EMAIL_SECURE }}
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASS=${{ secrets.EMAIL_PASS }}
+          EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+          EMAIL_FROM_NAME=${{ secrets.EMAIL_FROM_NAME }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          VITE_APP_NAME=${{ secrets.VITE_APP_NAME }}
+          VITE_APP_VERSION=${{ secrets.VITE_APP_VERSION }}
+          VITE_API_URL=${{ secrets.VITE_API_URL }}
+          VITE_FRONTEND_URL=${{ secrets.VITE_FRONTEND_URL }}
+          VITE_SOCKET_URL=${{ secrets.VITE_SOCKET_URL }}
+          EOF
+
+      - name: Build images
+        run: docker compose --env-file .env.prod -f docker-compose.prod.yml build
+
+      - name: Deploy containers
+        run: docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --remove-orphans
+
+      - name: Prune dangling images
+        run: docker image prune -f
+
+      - name: Remove temporary env file
+        if: always()
+        run: rm -f .env.prod
+
+      - name: Show running containers
+        if: always()
+        run: docker compose -f docker-compose.prod.yml ps
