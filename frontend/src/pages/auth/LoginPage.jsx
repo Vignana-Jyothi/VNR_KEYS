@@ -35,6 +35,7 @@ const LoginPage = () => {
         invalid_domain: "❌ Email is not valid. Please use your @vnrvjiet.in email address. Contact admin if you need access.",
         user_not_registered: "❌ Email is not registered in the system. Please contact the admin to get access.",
         google_mismatch: "⚠️ Your Google account is linked to a different account. Contact admin for support.",
+        hod_restricted: "ℹ️ Head of Department (HOD) accounts do not have access to the web portal. Your account is configured only to receive daily department summary emails.",
         auth_failed: "❌ Authentication failed. Please try again."
       };
       

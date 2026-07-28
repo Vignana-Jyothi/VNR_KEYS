@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["faculty", "security", "admin", "hod", "pending"],
-      default: "pending", // Default for new users who need to complete registration
+      default: "pending",
     },
     department: {
       type: String,
@@ -50,21 +50,34 @@ const userSchema = new mongoose.Schema(
         "SSC",
         "VJ_Hub"
       ],
-      required: function() {
+      required: function () {
         // Department is required for faculty and HOD
         return this.role === "faculty" || this.role === "hod";
       },
     },
     facultyId: {
       type: String,
-      required: function() {
-        // Faculty ID is required only for faculty
+      required: function () {
         return this.role === "faculty";
       },
       unique: true,
-      sparse: true, // Allows multiple null values for non-faculty users
+      sparse: true,
     },
-    // OAuth fields (required since we only use Google OAuth)
+
+    // ── NEW FIELDS ──────────────────────────────────────────
+    // Tracks whether faculty has completed the dept-picker step
+    isProfileComplete: {
+      type: Boolean,
+      default: false,
+    },
+    // Populated automatically for HODs from their email prefix
+    isHOD: {
+      type: Boolean,
+      default: false,
+    },
+    // ────────────────────────────────────────────────────────
+
+    // OAuth fields
     googleId: {
       type: String,
       required: true,
@@ -77,7 +90,7 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
     avatar: {
-      type: String, // URL to profile picture from Google
+      type: String,
       default: null,
     },
     lastLogin: {
@@ -86,15 +99,15 @@ const userSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: true, // All Google OAuth users are automatically verified
+      default: true,
     },
     keyUsage: {
       type: Map,
-      of: Number, // keyId -> usage count
+      of: Number,
       default: {},
     },
     favoriteKeys: {
-      type: [String], // Array of key IDs (as strings)
+      type: [String],
       default: [],
     },
   },

@@ -27,6 +27,7 @@ import ManageUsersPage from "./pages/admin/ManageUsersPage";
 import ManageApiKeysPage from "./pages/admin/ManageApiKeysPage";
 import SecuritySettingsPage from "./pages/admin/SecuritySettingsPage";
 import ViewReportsPage from "./pages/admin/ViewReportsPage";
+import CompleteProfilePage from "./pages/auth/CompleteProfilePage";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
 import { useKeyStore } from "./store/keyStore";
@@ -78,31 +79,26 @@ function App() {
 
 	useEffect(() => {
 		checkAuth();
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []); // Only run once on mount
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	// Initialize socket connections when user is authenticated
 	useEffect(() => {
 		if (isAuthenticated) {
-			// Initialize both sockets
 			initializeKeySocket();
 			initializeNotificationSocket();
-			
-			// Fetch notifications immediately when authenticated
 			useNotificationStore.getState().fetchNotifications();
 		} else {
-			// Disconnect both sockets
 			disconnectKeySocket();
 			disconnectNotificationSocket();
 		}
 
-		// Cleanup on unmount
 		return () => {
 			disconnectKeySocket();
 			disconnectNotificationSocket();
 		};
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isAuthenticated]); // Only depend on isAuthenticated
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthenticated]);
 
 	if (isCheckingAuth) return <LoadingSpinner />;
 
@@ -110,7 +106,18 @@ function App() {
 		<div className='min-h-screen bg-gray-900 relative overflow-hidden'>
 			<RouteObserver />
 			<Routes>
-				{/* Role-based Dashboard Routes */}
+
+				{/* ── Complete Profile (faculty dept picker) ── */}
+				<Route
+					path='/complete-profile'
+					element={
+						<ProtectedRoute>
+							<CompleteProfilePage />
+						</ProtectedRoute>
+					}
+				/>
+
+				{/* ── Role-based Dashboard Routes ── */}
 				<Route
 					path='/dashboard'
 					element={
@@ -120,12 +127,9 @@ function App() {
 					}
 				>
 					{/* Default dashboard - redirects to role-based dashboard */}
-					<Route
-						index
-						element={<RoleBasedRedirect />}
-					/>
+					<Route index element={<RoleBasedRedirect />} />
 
-					{/* Role-specific dashboard routes */}
+					{/* Admin dashboard */}
 					<Route
 						path='admin'
 						element={
@@ -192,12 +196,13 @@ function App() {
 							</RoleProtectedRoute>
 						}
 					>
-						{/* Nested routes for Security Dashboard */}
 						<Route index element={<Navigate to="scanner" replace />} />
 						<Route path="scanner" element={<QRScannerPage />} />
 						<Route path="available" element={<AvailableKeysPage />} />
 						<Route path="unavailable" element={<UnavailableKeysPage />} />
 					</Route>
+
+					{/* Faculty dashboard */}
 					<Route
 						path='faculty'
 						element={
@@ -206,12 +211,12 @@ function App() {
 							</RoleProtectedRoute>
 						}
 					>
-						{/* Nested routes for Faculty Dashboard */}
 						<Route index element={<Navigate to="taken" replace />} />
 						<Route path="taken" element={<MyKeysPage />} />
 						<Route path="keylist" element={<AllKeysPage />} />
 					</Route>
-					{/* Volunteer Key Return - accessible to Security and Faculty */}
+
+					{/* Collective key return */}
 					<Route
 						path='collective-return'
 						element={
@@ -220,14 +225,15 @@ function App() {
 							</RoleProtectedRoute>
 						}
 					/>
-					{/* Common dashboard routes accessible to all authenticated users */}
+
+					{/* Common routes — all authenticated users */}
 					<Route path='profile' element={<ProfilePage />} />
 					<Route path='about' element={<AboutPage />} />
 					<Route path='notifications' element={<NotificationsPage />} />
 					<Route path='notifications/history' element={<NotificationHistoryPage />} />
 				</Route>
 
-				{/* Root route - redirect to role-based dashboard */}
+				{/* Root route */}
 				<Route
 					path='/'
 					element={
@@ -237,7 +243,7 @@ function App() {
 					}
 				/>
 
-				{/* Auth Routes */}
+				{/* Auth routes */}
 				<Route
 					path='/login'
 					element={
@@ -247,8 +253,9 @@ function App() {
 					}
 				/>
 
-				{/* catch all routes */}
+				{/* Catch all */}
 				<Route path='*' element={<Navigate to='/dashboard' replace />} />
+
 			</Routes>
 			<Toaster />
 		</div>
