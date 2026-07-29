@@ -1,6 +1,6 @@
 # VNR Keys - Frontend (React + Vite)
 # Stage 1: Build the static bundle. Vite bakes VITE_* vars in at build time,
-# so they MUST be passed as --build-arg, not just env vars at runtime.
+# so they MUST be passed as --build-arg, not just env vars at runtime..
 FROM node:20-alpine AS build
 
 WORKDIR /app
