@@ -3,6 +3,7 @@ name: Deploy VNR Keys - Production
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -40,10 +41,12 @@ jobs:
           VITE_API_URL=${{ secrets.VITE_API_URL }}
           VITE_FRONTEND_URL=${{ secrets.VITE_FRONTEND_URL }}
           VITE_SOCKET_URL=${{ secrets.VITE_SOCKET_URL }}
+          ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }}
+          SECURITY_EMAILS=${{ secrets.SECURITY_EMAILS }}
           EOF
 
       - name: Build images
-        run: docker compose --env-file .env.prod -f docker-compose.prod.yml build
+        run: docker compose --env-file .env.prod -f docker-compose.prod.yml build --no-cache
 
       - name: Deploy containers
         run: docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --remove-orphans
