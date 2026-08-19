@@ -11,7 +11,7 @@ A comprehensive key management system with role-based access control, built with
 - **Responsive Design**: Mobile-first design with Tailwind CSS
 - **API Key Management**: Comprehensive API key tracking and management
 
-## 🏗️ Architecture
+## 🏗️ Architecture.
 
 - **Frontend**: React + Vite + Tailwind CSS
 - **Backend**: Node.js + Express + MongoDB
