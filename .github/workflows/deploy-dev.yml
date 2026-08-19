@@ -3,6 +3,7 @@ name: Deploy VNR Keys - Dev
 on:
   push:
     branches: [dev]
+  workflow_dispatch:
 
 jobs:
   deploy:
