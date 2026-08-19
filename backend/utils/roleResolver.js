@@ -61,12 +61,7 @@ export const resolveUserFromEmail = (email) => {
     const normalized = email.toLowerCase().trim();
     const allowedDomain = process.env.ALLOWED_DOMAIN || "vnrvjiet.in";
 
-    // ── Rule 1: Must be @vnrvjiet.in ──
-    if (!normalized.endsWith(`@${allowedDomain}`)) return null;
-
-    const prefix = normalized.replace(`@${allowedDomain}`, "");
-
-    // ── Rule 2: Admin emails from .env ──
+    // ── Rule 1: Admin emails from .env (Bypasses domain restriction) ──
     const adminEmails = (process.env.ADMIN_EMAILS || "")
         .split(",")
         .map((e) => e.trim().toLowerCase())
@@ -77,11 +72,11 @@ export const resolveUserFromEmail = (email) => {
             role: "admin",
             department: null,
             isHOD: false,
-            isProfileComplete: true,  // admins skip the dept picker
+            isProfileComplete: true,
         };
     }
 
-    // ── Rule 3: Security emails from .env ──
+    // ── Rule 2: Security emails from .env (Bypasses domain restriction) ──
     const securityEmails = (process.env.SECURITY_EMAILS || "")
         .split(",")
         .map((e) => e.trim().toLowerCase())
@@ -92,9 +87,14 @@ export const resolveUserFromEmail = (email) => {
             role: "security",
             department: null,
             isHOD: false,
-            isProfileComplete: true,  // security skips the dept picker
+            isProfileComplete: true,
         };
     }
+
+    // ── Rule 3: Domain Restriction for Faculty/Students/HODs ──
+    if (!normalized.endsWith(`@${allowedDomain}`)) return null;
+
+    const prefix = normalized.replace(`@${allowedDomain}`, "");
 
     // ── Rule 4: HOD emails — known prefix map ──
     if (HOD_EMAIL_MAP[prefix]) {
