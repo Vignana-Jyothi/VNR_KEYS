@@ -3,6 +3,7 @@ name: Deploy VNR Keys - Dev
 on:
   push:
     branches: [dev]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -43,7 +44,7 @@ jobs:
           EOF
 
       - name: Build images
-        run: docker compose --env-file .env.dev -f docker-compose.dev.yml build
+        run: docker compose --env-file .env.dev -f docker-compose.dev.yml build --no-cache
 
       - name: Deploy containers
         run: docker compose --env-file .env.dev -f docker-compose.dev.yml up -d --remove-orphans

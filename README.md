@@ -1,4 +1,4 @@
-# VNR Keys
+# VNR Keys.
 
 A comprehensive key management system with role-based access control, built with React frontend and Node.js backend.
 

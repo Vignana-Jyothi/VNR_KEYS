@@ -248,7 +248,9 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
 	});
 
 	// Build department rows HTML
+	// For HOD-specific emails, keysByDepartment will only contain their department
 	const departmentRows = Object.entries(keysByDepartment).map(([dept, keys]) => {
+		console.log(`   Building email row for department: ${dept} with ${keys.length} keys`);
 		const keyRows = keys.map(k => `
 			<tr>
 				<td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;">
@@ -275,6 +277,8 @@ export const sendDailySummaryEmail = async (toEmail, recipientName, summaryData)
 			${keyRows}
 		`;
 	}).join('');
+	
+	console.log(`   Total department rows built: ${Object.keys(keysByDepartment).length}`);
 
 	const subject = department 
 		? `📊 Daily Key Return Summary - ${department} - ${totalUnreturnedKeys} Keys Pending`

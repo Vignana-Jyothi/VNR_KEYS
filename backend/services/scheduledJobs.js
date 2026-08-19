@@ -27,10 +27,10 @@ export const initializeScheduledJobs = () => {
     timezone: "Asia/Kolkata" // Indian Standard Time
   });
 
-  // Job 2: Daily summary notifications at 5:10 PM (17:10)
-  // Cron expression: '10 17 * * *' means "at 17:10 (5:10 PM) every day"
-  const summaryNotificationJob = cron.schedule('10 17 * * *', async () => {
-    console.log('📊 Running daily summary notification job at 5:10 PM...');
+  // Job 2: Daily summary notifications at 11:35 AM (11:35)
+  // Cron expression: '35 11 * * *' means "at 11:35 (11:35 AM) every day"
+  const summaryNotificationJob = cron.schedule('35 11 * * *', async () => {
+    console.log('📊 Running daily summary notification job at 11:35 AM...');
     try {
       const result = await createDailySummaryNotifications(null, false);
       console.log(`✅ Summary notification job completed:`, result);
@@ -80,7 +80,7 @@ export const initializeScheduledJobs = () => {
 
   console.log('✅ Scheduled jobs initialized:');
   console.log('   📅 Daily key reminders: 4:55 PM IST');
-  console.log('   📊 Daily summary notifications: 5:10 PM IST');
+  console.log('   📊 Daily summary notifications: 11:35 AM IST');
   console.log('   🧹 Daily cleanup: 12:00 AM IST');
   if (process.env.NODE_ENV === 'development') {
     console.log('   🧪 Test job: Every minute (dev only)');

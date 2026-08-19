@@ -855,6 +855,14 @@ export const createDailySummaryNotifications = async (userId = null, sendToAll =
     console.log(`   Admin: ${adminUsers?.length || 0}`);
     console.log(`   Security: ${securityUsers?.length || 0}`);
     console.log(`   HOD: ${hodUsers?.length || 0}`);
+    
+    // Log HOD details for debugging
+    if (hodUsers && hodUsers.length > 0) {
+      console.log(`   HOD Details:`);
+      hodUsers.forEach(hod => {
+        console.log(`     - ${hod.name} (${hod.email}): ${hod.department || 'No department'}`);
+      });
+    }
 
     // Send to security users (college-wide summary)
     console.log('📧 Sending emails to Security users...');
@@ -924,72 +932,64 @@ export const createDailySummaryNotifications = async (userId = null, sendToAll =
       }
     }
 
-    // Send to HOD users (department-specific summary)
-    console.log('📧 Sending emails to HOD users...');
-    let hodNotificationCount = 0;
+    // Send to HOD users (department-specific summary) - EMAIL ONLY, NO NOTIFICATION DOCUMENTS
+    console.log('📧 Sending emails to HOD users (email-only, no dashboard notifications)...');
+    console.log(`   Total HOD users found: ${hodUsers?.length || 0}`);
+    let hodEmailSentCount = 0;
+    let hodSkippedCount = 0;
+    let hodErrorCount = 0;
+    
     for (const hodUser of hodUsers || []) {
       const hodDepartment = hodUser.department;
+      console.log(`   Processing HOD: ${hodUser.name} (${hodUser.email}) - Department: ${hodDepartment || 'Not assigned'}`);
       
       if (!hodDepartment) {
         console.warn(`   ⚠️ HOD user ${hodUser.name} has no department assigned, skipping`);
+        hodSkippedCount++;
         continue;
       }
 
       // Filter keys for this HOD's department only
       const departmentKeys = keysByDepartment[hodDepartment] || [];
       const departmentKeyCount = departmentKeys.length;
+      console.log(`   - Keys for ${hodDepartment}: ${departmentKeyCount}`);
 
       if (departmentKeyCount === 0) {
-        console.log(`   ℹ️ No keys pending for ${hodDepartment} department, skipping HOD notification`);
+        console.log(`   ℹ️ No keys pending for ${hodDepartment} department, skipping HOD email`);
+        hodSkippedCount++;
         continue;
       }
 
-      console.log(`   - Sending to ${hodUser.name} (${hodUser.email}) for ${hodDepartment} department...`);
-
-      // Generate department-specific summary message
-      let hodSummaryMessage = `Daily Key Return Summary - ${hodDepartment} Department\n\n`;
-      hodSummaryMessage += `Total Unreturned Keys: ${departmentKeyCount}\n\n`;
-      hodSummaryMessage += `${hodDepartment} Department Keys:\n`;
-      departmentKeys.forEach(k => {
-        hodSummaryMessage += `• Key ${k.keyNumber} (${k.keyName}) - Held by ${k.holder}\n`;
-      });
-
-      const notificationData = {
-        recipient: {
-          userId: hodUser._id,
-          name: hodUser.name,
-          email: hodUser.email,
-          role: 'hod',
-        },
-        title: `Daily Key Return Summary - ${hodDepartment} - ${departmentKeyCount} Keys Pending`,
-        message: hodSummaryMessage,
-        type: 'key_summary',
-        priority: 'medium',
-        metadata: {
-          totalKeys: departmentKeyCount,
-          departmentSummary: { [hodDepartment]: departmentKeys },
-          department: hodDepartment,
-          generatedAt: new Date().toISOString()
-        }
-      };
+      console.log(`   - Sending department-specific email to ${hodUser.name} (${hodUser.email}) for ${hodDepartment} department...`);
 
       try {
-        const notification = await createAndSendNotification(notificationData, {
-          email: true,
-          realTime: false // HOD users don't have dashboard access, no real-time needed
-        });
-        notifications.push(notification);
-        hodNotificationCount++;
-        console.log(`   ✓ Sent to ${hodUser.email} (${hodDepartment})`);
+        // Send email directly using Nodemailer, bypassing the notification system entirely
+        await sendDailySummaryEmail(
+          hodUser.email,
+          hodUser.name,
+          {
+            totalUnreturnedKeys: departmentKeyCount,
+            keysByDepartment: { [hodDepartment]: departmentKeys },
+            generatedAt: new Date().toISOString(),
+            department: hodDepartment // Pass department for HOD-specific email template
+          }
+        );
+        hodEmailSentCount++;
+        console.log(`   ✓ Email sent successfully to ${hodUser.email} (${hodDepartment})`);
       } catch (err) {
-        console.error(`   ✗ Failed to send to ${hodUser.email}:`, err.message);
+        hodErrorCount++;
+        console.error(`   ✗ Failed to send email to ${hodUser.email}:`, err.message);
+        console.error(`   Full error details:`, err);
+        // Continue processing other HODs even if one fails
       }
     }
+    
+    console.log(`   HOD Email Summary: ${hodEmailSentCount} sent, ${hodSkippedCount} skipped, ${hodErrorCount} failed`);
 
     console.log(`✅ Daily summary completed successfully:`);
     console.log(`   - Security: ${securityUsers?.length || 0} recipients`);
     console.log(`   - Admin: ${adminUsers?.length || 0} recipients`);
-    console.log(`   - HOD: ${hodNotificationCount} recipients`);
+    console.log(`   - HOD: ${hodEmailSentCount} recipients (email-only)`);
     console.log(`   - Total notifications: ${notifications.length}`);
     console.log(`   - Total unreturned keys: ${totalUnreturnedKeys}`);
     
@@ -998,7 +998,7 @@ export const createDailySummaryNotifications = async (userId = null, sendToAll =
       totalUnreturnedKeys,
       securityRecipients: securityUsers?.length || 0,
       adminRecipients: adminUsers?.length || 0,
-      hodRecipients: hodNotificationCount
+      hodRecipients: hodEmailSentCount
     };
   } catch (error) {
     console.error("❌ Error creating daily summary notifications:", error);
