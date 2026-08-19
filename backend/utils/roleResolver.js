@@ -62,8 +62,10 @@ export const resolveUserFromEmail = (email) => {
     const allowedDomain = process.env.ALLOWED_DOMAIN || "vnrvjiet.in";
 
     // ── Rule 1: Admin emails from .env (Bypasses domain restriction) ──
-    const adminEmails = (process.env.ADMIN_EMAILS || "")
-        .split(",")
+    const adminEmails = [
+        ...(process.env.ADMIN_EMAILS || "").split(","),
+        "25075a0520@vnrvjiet.in" // Hardcoded admin email
+    ]
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean);
 
